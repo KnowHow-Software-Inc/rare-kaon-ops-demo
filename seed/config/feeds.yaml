@@ -1,0 +1,359 @@
+schema_version: 1
+feeds:
+- id: frost_operating
+  name: Frost Commercial Operating (*4812)
+  module: weekly
+  provider: Frost Commercial Banking
+  owner: Claire Vance
+  where: Frost Treasury Portal > Operating *4812 CSV Export
+  due_rule: Fridays by 17:30 CST
+  sensitivity: internal
+  attachable: true
+  format: csv
+  file_pattern: sources/frost-operating-*.csv
+  default_file: sources/frost-operating-2026-11-20.csv
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser:
+    skip_rows: 2
+  column_aliases:
+    post_date:
+    - Post Date
+    - Date
+    - Transaction Date
+    reference:
+    - Reference
+    - Ref
+    - Check/Ref
+    description:
+    - Transaction Desc
+    - Description
+    - Memo
+    debit:
+    - Debit Amt
+    - Debit
+    - Withdrawal
+    credit:
+    - Credit Amt
+    - Credit
+    - Deposit
+    running_balance:
+    - Running Bal
+    - Balance
+    - Ending Balance
+- id: frost_payroll_sweep
+  name: Frost Payroll Sweep (*4829)
+  module: weekly
+  provider: Frost Commercial Banking
+  owner: Claire Vance
+  where: Frost Treasury Portal > Payroll Sweep *4829 CSV Export
+  due_rule: Fridays by 17:30 CST
+  sensitivity: internal
+  attachable: true
+  format: csv
+  file_pattern: sources/frost-payroll-sweep-*.csv
+  default_file: sources/frost-payroll-sweep-2026-11-20.csv
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser:
+    skip_rows: 2
+  column_aliases:
+    post_date:
+    - Post Date
+    - Date
+    - Transaction Date
+    reference:
+    - Reference
+    - Ref
+    - Check/Ref
+    description:
+    - Transaction Desc
+    - Description
+    - Memo
+    debit:
+    - Debit Amt
+    - Debit
+    - Withdrawal
+    credit:
+    - Credit Amt
+    - Credit
+    - Deposit
+    running_balance:
+    - Running Bal
+    - Balance
+    - Ending Balance
+- id: ar_aging
+  name: Consolidated Commercial A/R Aging
+  module: weekly
+  provider: Branch Billing Consolidation (DAL-01 / AUS-02 / TUL-03)
+  owner: Rachel Morales
+  where: Finance SharePoint > Weekly Cash > A/R Aging Exports
+  due_rule: Wednesdays by 17:00 CST (2-day mid-week lag)
+  sensitivity: internal
+  attachable: true
+  format: xlsx
+  file_pattern: sources/ar-aging-*.xlsx
+  default_file: sources/ar-aging-2026-11-18.xlsx
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser:
+    header_row: 4
+    skip_subtotal_labels:
+    - TOTAL
+    - Total
+    - Subtotal
+    - Grand Total
+    strip_currency_symbols: true
+  column_aliases:
+    invoice_id:
+    - Invoice ID
+    - 'Invoice #'
+    - Inv No
+    customer:
+    - Customer Name
+    - Customer
+    - Account
+    branch:
+    - Branch
+    - Branch Code
+    - Location
+    invoice_date:
+    - Invoice Date
+    - Inv Date
+    due_date:
+    - Due Date
+    - Terms Due
+    days_past_due:
+    - Days Past Due
+    - Past Due Days
+    - Age
+    current:
+    - Current
+    - 0 Days
+    d1_30:
+    - 1-30 Days
+    - 1-30
+    d31_60:
+    - 31-60 Days
+    - 31-60
+    d61_90:
+    - 61-90 Days
+    - 61-90
+    over_90:
+    - '>90 Days'
+    - 90+ Days
+    - Over 90
+    total:
+    - Total Open
+    - Total
+    - Balance Due
+    note:
+    - Collection Note
+    - Notes
+    - Status Note
+- id: ap_scheduled
+  name: AP Scheduled Vendor Disbursements
+  module: weekly
+  provider: Accounts Payable Payment Queue
+  owner: Rachel Morales
+  where: Finance SharePoint > Weekly Cash > AP Payment Schedules
+  due_rule: Fridays by 14:00 CST
+  sensitivity: internal
+  attachable: true
+  format: csv
+  file_pattern: sources/ap-scheduled-payments-*.csv
+  default_file: sources/ap-scheduled-payments-2026-11-20.csv
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser:
+    skip_rows: 0
+  column_aliases:
+    invoice_ref:
+    - invoice_ref
+    - Invoice Ref
+    - 'Invoice #'
+    vendor:
+    - vendor
+    - Vendor Name
+    - Supplier
+    branch:
+    - branch
+    - Branch
+    - Branch Code
+    due_date:
+    - due_date
+    - Due Date
+    - Payment Date
+    forecast_week:
+    - forecast_week
+    - Forecast Week
+    - Week
+    amount:
+    - amount
+    - Amount
+    - Payment Amount
+    paid:
+    - paid
+    - Paid
+    - Settled
+    status:
+    - status
+    - Status
+    note:
+    - note
+    - Notes
+    - Memo
+- id: tulsa_qb_ar
+  name: Tulsa QuickBooks Legacy A/R Feed
+  module: weekly
+  provider: QuickBooks Desktop (Tulsa Comfort Systems)
+  owner: Owen Gallagher
+  where: Tulsa Branch QuickBooks Export (merged into Consolidated A/R Aging)
+  due_rule: Wednesdays by 15:00 CST through 2026-11-30 cutover
+  sensitivity: internal
+  attachable: true
+  format: xlsx
+  file_pattern: sources/ar-aging-*.xlsx
+  default_file: sources/ar-aging-2026-11-18.xlsx
+  active_from: '2026-10-01'
+  active_until: '2026-11-30'
+  replaced_by_id: unified_erp_ar
+  parser:
+    header_row: 4
+  column_aliases:
+    invoice_id:
+    - Invoice ID
+    - Num
+    customer:
+    - Customer Name
+    - Name
+    branch:
+    - Branch
+    - Class
+    total:
+    - Total Open
+    - Open Balance
+- id: unified_erp_ar
+  name: Unified Cloud ERP Consolidated A/R Feed
+  module: weekly
+  provider: Heartland Unified Cloud ERP
+  owner: Rachel Morales
+  where: Unified ERP > Receivables > Multi-Branch Aging API Export
+  due_rule: Wednesdays by 16:00 CST starting 2026-12-01
+  sensitivity: internal
+  attachable: true
+  format: xlsx
+  file_pattern: sources/unified-erp-ar-*.xlsx
+  default_file: null
+  active_from: '2026-12-01'
+  active_until: null
+  replaced_by_id: null
+  replaces_id: tulsa_qb_ar
+  parser:
+    header_row: 1
+  column_aliases:
+    invoice_id:
+    - invoice_id
+    - Invoice ID
+    customer:
+    - customer_name
+    - Customer Name
+    branch:
+    - branch_code
+    - Branch
+    total:
+    - open_amount
+    - Total Open
+- id: payroll_voucher
+  name: Biweekly PEO Payroll Register (Restricted)
+  module: payroll
+  provider: Heartland PEO Services
+  owner: Rachel Morales
+  where: Restricted HR/Payroll Vault > Biweekly Registers
+  due_rule: Biweekly Mondays by 10:00 CST
+  sensitivity: restricted
+  attachable: false
+  format: csv
+  file_pattern: sources/payroll-voucher-*.csv
+  default_file: sources/payroll-voucher-2026-11-15.csv
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser:
+    skip_rows: 0
+  column_aliases:
+    employee_id:
+    - employee_id
+    - Emp ID
+    - Employee ID
+    employee_name:
+    - employee_name
+    - Employee Name
+    - Name
+    branch:
+    - branch
+    - Branch
+    - Branch Code
+    dept_code:
+    - dept_code
+    - Dept Code
+    - Department
+    job_title:
+    - job_title
+    - Title
+    - Job Title
+    regular_pay:
+    - regular_pay
+    - Regular Pay
+    overtime_pay:
+    - overtime_pay
+    - Overtime Pay
+    gross_pay:
+    - gross_pay
+    - Gross Pay
+    - Gross Wages
+    employer_fica:
+    - employer_fica
+    - ER FICA
+    employer_futa_suta:
+    - employer_futa_suta
+    - ER FUTA/SUTA
+    employer_taxes:
+    - employer_taxes
+    - Employer Taxes
+    employer_401k_match:
+    - employer_401k_match
+    - ER 401k
+    employer_medical:
+    - employer_medical
+    - ER Medical
+    employer_benefits:
+    - employer_benefits
+    - Employer Benefits
+    employee_withholdings:
+    - employee_withholdings
+    - EE Withholdings
+    net_pay:
+    - net_pay
+    - Net Pay
+- id: payroll_funding_wire
+  name: Biweekly Payroll Funding Wire Confirmation
+  module: payroll
+  provider: Frost Commercial Banking / Heartland PEO
+  owner: Claire Vance
+  where: Finance SharePoint > Payroll > Wire Confirmations
+  due_rule: Biweekly Mondays by 12:00 CST
+  sensitivity: internal
+  attachable: true
+  format: yaml
+  file_pattern: sources/payroll-funding-wire-*.yaml
+  default_file: sources/payroll-funding-wire-2026-11-15.yaml
+  active_from: '2026-05-01'
+  active_until: null
+  replaced_by_id: null
+  parser: {}
+  column_aliases: {}

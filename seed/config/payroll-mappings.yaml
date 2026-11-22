@@ -1,0 +1,89 @@
+schema_version: 1
+effective_date: '2026-11-01'
+owner: Rachel Morales
+clearing_accounts:
+  cash_sweep_account: 1020-00
+  cash_sweep_account_name: Frost Payroll Sweep (*4829)
+  withholdings_liability_account: 2140-00
+  withholdings_liability_account_name: Employee Withholdings Payable
+mappings:
+- dept_code: DAL-SVC-FIELD
+  branch: DAL-01
+  erp_department: 100-DAL-SERVICE
+  wages_account: 5100-10
+  wages_account_name: Direct Field Labor - Dallas
+  payroll_tax_account: 5120-10
+  payroll_tax_account_name: Employer Payroll Taxes - Dallas
+  benefits_account: 5130-10
+  benefits_account_name: Employer Benefits & 401(k) - Dallas
+  active: true
+- dept_code: DAL-CTRL-ENG
+  branch: DAL-01
+  erp_department: 110-DAL-CONTROLS
+  wages_account: 5105-10
+  wages_account_name: Controls Engineering Labor - Dallas
+  payroll_tax_account: 5120-10
+  payroll_tax_account_name: Employer Payroll Taxes - Dallas
+  benefits_account: 5130-10
+  benefits_account_name: Employer Benefits & 401(k) - Dallas
+  active: true
+- dept_code: DAL-OPS-MGMT
+  branch: DAL-01
+  erp_department: 120-DAL-OPS
+  wages_account: 6100-10
+  wages_account_name: Branch Operations & Dispatch - Dallas
+  payroll_tax_account: 6120-10
+  payroll_tax_account_name: Ops Employer Payroll Taxes - Dallas
+  benefits_account: 6130-10
+  benefits_account_name: Ops Employer Benefits - Dallas
+  active: true
+- dept_code: AUS-SVC-FIELD
+  branch: AUS-02
+  erp_department: 200-AUS-SERVICE
+  wages_account: 5100-20
+  wages_account_name: Direct Field Labor - Austin
+  payroll_tax_account: 5120-20
+  payroll_tax_account_name: Employer Payroll Taxes - Austin
+  benefits_account: 5130-20
+  benefits_account_name: Employer Benefits & 401(k) - Austin
+  active: true
+- dept_code: AUS-CTRL-ENG
+  branch: AUS-02
+  erp_department: 210-AUS-CONTROLS
+  wages_account: 5105-20
+  wages_account_name: Controls Engineering Labor - Austin
+  payroll_tax_account: 5120-20
+  payroll_tax_account_name: Employer Payroll Taxes - Austin
+  benefits_account: 5130-20
+  benefits_account_name: Employer Benefits & 401(k) - Austin
+  active: true
+- dept_code: AUS-OPS-MGMT
+  branch: AUS-02
+  erp_department: 220-AUS-OPS
+  wages_account: 6100-20
+  wages_account_name: Branch Operations & Dispatch - Austin
+  payroll_tax_account: 6120-20
+  payroll_tax_account_name: Ops Employer Payroll Taxes - Austin
+  benefits_account: 6130-20
+  benefits_account_name: Ops Employer Benefits - Austin
+  active: true
+- dept_code: TUL-SVC-FIELD
+  branch: TUL-03
+  erp_department: 300-TUL-SERVICE
+  wages_account: 5100-30
+  wages_account_name: Direct Field Labor - Tulsa
+  payroll_tax_account: 5120-30
+  payroll_tax_account_name: Employer Payroll Taxes - Tulsa
+  benefits_account: 5130-30
+  benefits_account_name: Employer Benefits & 401(k) - Tulsa
+  active: true
+- dept_code: TUL-OPS-ADMIN
+  branch: TUL-03
+  erp_department: 320-TUL-ADMIN
+  wages_account: 6100-30
+  wages_account_name: Branch Admin & Accounting - Tulsa
+  payroll_tax_account: 6120-30
+  payroll_tax_account_name: Admin Employer Payroll Taxes - Tulsa
+  benefits_account: 6130-30
+  benefits_account_name: Admin Employer Benefits - Tulsa
+  active: true

@@ -1,0 +1,13 @@
+invoice_ref,vendor,branch,due_date,forecast_week,amount,paid,status,note
+TRN-2026-6620,Trane Commercial Supply,DAL-01,2026-11-17,0,54280.00,true,paid,Cleared on Frost Operating *4812 on 2026-11-17
+LSS-2026-4189,Lone Star HVAC Supply,AUS-02,2026-11-25,1,25000.00,false,scheduled,Rooftop unit replacement parts for AUS-02 retrofit project
+CAR-2026-4518,Carrier Enterprise South Central,DAL-01,2026-11-24,1,64850.00,false,scheduled,Hospital chiller stock coils and variable frequency drives
+JCI-2026-7712,Johnson Controls Distribution,DAL-01,2026-11-25,1,37600.00,false,scheduled,BACnet controller modules for Plano ISD & Parkland
+OKC-2026-1190,MidContinent Mechanical Supply,TUL-03,2026-11-26,1,21300.00,false,scheduled,Tulsa branch sheet metal & duct insulation batch
+TRN-2026-6744,Trane Commercial Supply,DAL-01,2026-12-01,2,58420.00,false,scheduled,Commercial packaged rooftop unit deposit
+FER-2026-3081,Ferguson HVAC Wholesale,AUS-02,2026-12-03,2,34100.00,false,scheduled,Austin commercial controls valves and actuators
+GCR-2026-9105,Gulf Coast Refrigeration Parts,TUL-03,2026-12-04,2,23900.00,false,scheduled,Refrigerant cylinders and rack sensors
+CAR-2026-4602,Carrier Enterprise South Central,DAL-01,2026-12-08,3,62150.00,false,scheduled,Dallas winter maintenance stock replenishment
+LSS-2026-4235,Lone Star HVAC Supply,AUS-02,2026-12-10,3,46800.00,false,scheduled,Austin air-handler motors and blower assemblies
+TRN-2026-6819,Trane Commercial Supply,DAL-01,2026-12-15,4,69500.00,false,scheduled,Chiller condenser bundle balance payment
+JCI-2026-7804,Johnson Controls Distribution,AUS-02,2026-12-17,4,42800.00,false,scheduled,Domain Northside VAV automation panels

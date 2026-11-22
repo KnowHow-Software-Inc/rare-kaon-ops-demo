@@ -1,0 +1,5 @@
+PyYAML==6.0.2
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+reportlab==4.2.5
+charset-normalizer==3.4.0

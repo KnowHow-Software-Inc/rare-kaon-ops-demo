@@ -1,0 +1,21 @@
+change_id: CHG-LSS-4189
+period: '2026-11-20'
+module: weekly
+kind: payment_deferral
+invoice_ref: LSS-2026-4189
+vendor: Lone Star HVAC Supply
+branch: AUS-02
+amount: 25000.0
+old_due_date: '2026-11-25'
+new_due_date: '2026-12-02'
+old_week: 1
+new_week: 2
+requested_by: Tomás Herrera
+requested_by_role: Regional Operations Manager, Austin
+vendor_contact: Derek Shaw, AR Manager, Lone Star HVAC Supply
+received_at: '2026-11-20T10:42:00Z'
+companion_memo: lone-star-amendment-email.txt
+summary: Defer Lone Star HVAC Supply invoice LSS-2026-4189 ($25,000.00) by 7 days from Week 1 (2026-11-25)
+  to Week 2 (2026-12-02).
+rationale: Vendor confirmed a 7-day net-terms courtesy extension with zero late fee while AUS-02 rooftop
+  unit commissioning inspection completes.

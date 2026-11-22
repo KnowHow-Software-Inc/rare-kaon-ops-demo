@@ -1,0 +1,25 @@
+schema_version: 1
+wire_reference: PEO-WIRE-2026-1115
+bank_account: Frost Payroll Sweep (*4829)
+provider: Heartland PEO Services (Biweekly Field & Branch Batch)
+pay_period_start: '2026-11-01'
+pay_period_end: '2026-11-13'
+pay_date: '2026-11-15'
+settlement_date: '2026-11-16'
+employee_count: 18
+components:
+  gross_wages: 72910.25
+  regular_wages: 61430.0
+  overtime_wages: 11480.25
+  employer_fica: 5577.65
+  employer_futa_suta: 162.0
+  employer_taxes: 5739.65
+  employer_401k_match: 2916.41
+  employer_medical: 8450.0
+  employer_benefits: 11366.41
+  employee_withholdings: 20277.62
+  net_pay: 52632.63
+  employer_cost_total: 90016.31
+  total_funding_wire: 69738.69
+tieout_note: Funding wire equals gross wages + employer taxes + employer benefits minus employee withholdings
+  (equivalently net pay + employer taxes + employer benefits).

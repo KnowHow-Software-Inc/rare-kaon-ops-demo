@@ -1,0 +1,46 @@
+schema_version: 1
+send_mode: draft_only
+approver:
+  name: Claire Vance
+  title: VP Finance
+  email: claire.vance@heartlandmechanical.example
+controller:
+  name: Rachel Morales
+  title: Controller
+  email: rachel.morales@heartlandmechanical.example
+operations_contacts:
+- name: Tomás Herrera
+  title: Regional Operations Manager, Austin
+  branch: AUS-02
+  email: tomas.herrera@heartlandmechanical.example
+recipients:
+  board_pack:
+  - name: David Park
+    title: Operating Partner, Sponsor
+    email: david.park@heartland-sponsor.example
+  - name: Claire Vance
+    title: VP Finance
+    email: claire.vance@heartlandmechanical.example
+  payroll_review:
+  - name: Rachel Morales
+    title: Controller
+    email: rachel.morales@heartlandmechanical.example
+  - name: Claire Vance
+    title: VP Finance
+    email: claire.vance@heartlandmechanical.example
+deliverables:
+  weekly:
+  - Weekly-Liquidity-Update.pdf
+  - 13-Week-Cash-Flow.pdf
+  - Reports.html
+  - Setup.html
+  - report-model.json
+  payroll:
+  - payroll-review.xlsx
+  - Reports.html
+  - Setup.html
+  - report-model.json
+privacy:
+  never_attach_sensitivity:
+  - restricted
+  cite_restricted_by_filename_and_date_only: true

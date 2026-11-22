@@ -1,0 +1,367 @@
+{
+  "meta": {
+    "company_name": "Heartland Mechanical Services, LLC",
+    "module": "weekly",
+    "period": "2026-11-13",
+    "period_label": "Week ended 13 November 2026",
+    "version": "0.1.0",
+    "draft_number": 1,
+    "status": "approved",
+    "created_at": "2026-11-13T16:15:00Z",
+    "approver": "Claire Vance",
+    "is_approved": true,
+    "edition_number": 1,
+    "approved_at": "2026-11-13T17:05:00Z",
+    "approved_by": "Claire Vance",
+    "schema_version": 1
+  },
+  "kpis": [
+    {
+      "key": "opening_cash",
+      "label": "Opening Cash",
+      "value": 1795675.65,
+      "unit": "USD",
+      "status": "actual",
+      "note": "Frost Operating (*4812) + Frost Payroll Sweep (*4829) as of 2026-11-13.",
+      "comparison_value": null,
+      "comparison_label": null,
+      "comparison_kind": "prior"
+    },
+    {
+      "key": "week1_ending_cash",
+      "label": "Week 1 Ending Cash",
+      "value": 1808465.65,
+      "unit": "USD",
+      "status": "forecast",
+      "note": "Projected consolidated cash for week ending 2026-11-20.",
+      "comparison_value": null,
+      "comparison_label": null,
+      "comparison_kind": "prior"
+    },
+    {
+      "key": "week13_ending_cash",
+      "label": "Week 13 Ending Cash",
+      "value": 2023215.65,
+      "unit": "USD",
+      "status": "forecast",
+      "note": "Projected consolidated cash for week ending 2027-02-12.",
+      "comparison_value": null,
+      "comparison_label": null,
+      "comparison_kind": "prior"
+    },
+    {
+      "key": "min_cash_balance",
+      "label": "Minimum Forecast Cash",
+      "value": 1790655.65,
+      "unit": "USD",
+      "status": "forecast",
+      "note": "Remains well above the $750,000 minimum liquidity floor.",
+      "comparison_value": 750000.0,
+      "comparison_label": "Cash floor",
+      "comparison_kind": "limit"
+    },
+    {
+      "key": "ar_total",
+      "label": "Total Open A/R",
+      "value": 2214850.0,
+      "unit": "USD",
+      "status": "actual",
+      "note": "Consolidated multi-branch aging as of 2026-11-11.",
+      "comparison_value": null,
+      "comparison_label": null,
+      "comparison_kind": "prior"
+    },
+    {
+      "key": "ar_over_60",
+      "label": "A/R Over 60 Days",
+      "value": 80650.0,
+      "unit": "USD",
+      "status": "actual",
+      "note": "Two accounts >60 days past due as of 2026-11-11 (Richardson ISD & Capitol Tower).",
+      "comparison_value": null,
+      "comparison_label": null,
+      "comparison_kind": "prior"
+    }
+  ],
+  "variance_bridge": null,
+  "sections": {
+    "cash_accounts": [
+      {
+        "account_id": "frost_operating",
+        "name": "Frost Commercial Operating",
+        "bank": "Frost Commercial Banking",
+        "mask": "*4812",
+        "closing_balance": 1611475.65,
+        "as_of": "2026-11-13",
+        "source_file": "frost-operating-2026-11-13.csv"
+      },
+      {
+        "account_id": "frost_payroll_sweep",
+        "name": "Frost Payroll Sweep",
+        "bank": "Frost Commercial Banking",
+        "mask": "*4829",
+        "closing_balance": 184200.0,
+        "as_of": "2026-11-13",
+        "source_file": "frost-payroll-sweep-2026-11-13.csv"
+      }
+    ],
+    "forecast_weeks": [
+      {
+        "week_num": 1,
+        "week_ending": "2026-11-20",
+        "opening_cash": 1795675.65,
+        "inflows": 368450.0,
+        "outflows": 355660.0,
+        "net_cash": 12790.0,
+        "ending_cash": 1808465.65,
+        "notes": "Biweekly payroll week ($265,480 plan); planned AP & shop leases"
+      },
+      {
+        "week_num": 2,
+        "week_ending": "2026-11-27",
+        "opening_cash": 1808465.65,
+        "inflows": 379250.0,
+        "outflows": 268750.0,
+        "net_cash": 110500.0,
+        "ending_cash": 1918965.65,
+        "notes": "Includes Methodist Health Facilities INV-2026-8814 ($64,250.00) expected"
+      },
+      {
+        "week_num": 3,
+        "week_ending": "2026-12-04",
+        "opening_cash": 1918965.65,
+        "inflows": 392000.0,
+        "outflows": 516100.0,
+        "net_cash": -124100.0,
+        "ending_cash": 1794865.65,
+        "notes": "Biweekly payroll week; estimated fleet fuel card auto-draft ($14,200.00)"
+      },
+      {
+        "week_num": 4,
+        "week_ending": "2026-12-11",
+        "opening_cash": 1794865.65,
+        "inflows": 405000.0,
+        "outflows": 228950.0,
+        "net_cash": 176050.0,
+        "ending_cash": 1970915.65,
+        "notes": "Commercial service collections and scheduled vendor AP"
+      },
+      {
+        "week_num": 5,
+        "week_ending": "2026-12-18",
+        "opening_cash": 1970915.65,
+        "inflows": 398000.0,
+        "outflows": 497780.0,
+        "net_cash": -99780.0,
+        "ending_cash": 1871135.65,
+        "notes": "Biweekly payroll week; scheduled Q4 distributor payments"
+      },
+      {
+        "week_num": 6,
+        "week_ending": "2026-12-25",
+        "opening_cash": 1871135.65,
+        "inflows": 295000.0,
+        "outflows": 235000.0,
+        "net_cash": 60000.0,
+        "ending_cash": 1931135.65,
+        "notes": "Holiday week reduced collections; baseline operating outflows"
+      },
+      {
+        "week_num": 7,
+        "week_ending": "2027-01-01",
+        "opening_cash": 1931135.65,
+        "inflows": 360000.0,
+        "outflows": 500480.0,
+        "net_cash": -140480.0,
+        "ending_cash": 1790655.65,
+        "notes": "Biweekly payroll week; year-end operating cadence"
+      },
+      {
+        "week_num": 8,
+        "week_ending": "2027-01-08",
+        "opening_cash": 1790655.65,
+        "inflows": 395000.0,
+        "outflows": 235000.0,
+        "net_cash": 160000.0,
+        "ending_cash": 1950655.65,
+        "notes": "Baseline operating cadence"
+      },
+      {
+        "week_num": 9,
+        "week_ending": "2027-01-15",
+        "opening_cash": 1950655.65,
+        "inflows": 402000.0,
+        "outflows": 500480.0,
+        "net_cash": -98480.0,
+        "ending_cash": 1852175.65,
+        "notes": "Biweekly payroll week; Q1 preventive maintenance billing"
+      },
+      {
+        "week_num": 10,
+        "week_ending": "2027-01-22",
+        "opening_cash": 1852175.65,
+        "inflows": 410000.0,
+        "outflows": 235000.0,
+        "net_cash": 175000.0,
+        "ending_cash": 2027175.65,
+        "notes": "Baseline operating cadence"
+      },
+      {
+        "week_num": 11,
+        "week_ending": "2027-01-29",
+        "opening_cash": 2027175.65,
+        "inflows": 405000.0,
+        "outflows": 500480.0,
+        "net_cash": -95480.0,
+        "ending_cash": 1931695.65,
+        "notes": "Biweekly payroll week; baseline operating cadence"
+      },
+      {
+        "week_num": 12,
+        "week_ending": "2027-02-05",
+        "opening_cash": 1931695.65,
+        "inflows": 412000.0,
+        "outflows": 235000.0,
+        "net_cash": 177000.0,
+        "ending_cash": 2108695.65,
+        "notes": "Baseline operating cadence"
+      },
+      {
+        "week_num": 13,
+        "week_ending": "2027-02-12",
+        "opening_cash": 2108695.65,
+        "inflows": 415000.0,
+        "outflows": 500480.0,
+        "net_cash": -85480.0,
+        "ending_cash": 2023215.65,
+        "notes": "Biweekly payroll week; baseline operating cadence"
+      }
+    ],
+    "ar_aging": {
+      "as_of": "2026-11-11",
+      "source_file": "ar-aging-2026-11-11.xlsx",
+      "total": 2214850.0,
+      "buckets": {
+        "current": 1248600.0,
+        "d1_30": 612450.0,
+        "d31_60": 273150.0,
+        "d61_90": 48900.0,
+        "over_90": 31750.0
+      },
+      "overdue_items": [
+        {
+          "invoice_id": "INV-2026-7305",
+          "customer": "Capitol Tower Property Management",
+          "branch": "AUS-02",
+          "invoice_date": "2026-07-07",
+          "due_date": "2026-08-06",
+          "days_past_due": 97,
+          "bucket": ">90",
+          "amount": 31750.0,
+          "note": "Escalated to Controller Rachel Morales; payment plan under review"
+        },
+        {
+          "invoice_id": "INV-2026-7941",
+          "customer": "Richardson ISD Facilities",
+          "branch": "DAL-01",
+          "invoice_date": "2026-08-06",
+          "due_date": "2026-09-05",
+          "days_past_due": 67,
+          "bucket": "61-90",
+          "amount": 48900.0,
+          "note": "Awaiting signed final lien waiver from DAL-01 project manager"
+        }
+      ]
+    },
+    "scheduled_payments": [
+      {
+        "invoice_ref": "TRN-2026-6620",
+        "vendor": "Trane Commercial Supply",
+        "branch": "DAL-01",
+        "due_date": "2026-11-17",
+        "forecast_week": 1,
+        "amount": 54280.0,
+        "paid": false,
+        "status": "scheduled",
+        "note": "Commercial coils disbursement planned for Week 1"
+      },
+      {
+        "invoice_ref": "LSS-2026-4189",
+        "vendor": "Lone Star HVAC Supply",
+        "branch": "AUS-02",
+        "due_date": "2026-11-25",
+        "forecast_week": 2,
+        "amount": 25000.0,
+        "paid": false,
+        "status": "scheduled",
+        "note": "Rooftop unit replacement parts for AUS-02 retrofit project"
+      }
+    ],
+    "revisions": []
+  },
+  "checks": [
+    {
+      "id": "WK-NOTE-001",
+      "group": "Weekly Cash",
+      "title": "Edition 1 baseline controls passed",
+      "severity": "note",
+      "detail": "All bank tie-outs and liquidity floor checks passed for 2026-11-13 issuance.",
+      "owner": "Claire Vance",
+      "next_step": "Use Edition 1 as the variance baseline for week ended 2026-11-20.",
+      "amount": null,
+      "blocks_approval": false
+    }
+  ],
+  "pending_changes": [],
+  "sources": [
+    {
+      "feed_id": "frost_operating",
+      "file_name": "frost-operating-2026-11-13.csv",
+      "as_of": "2026-11-13",
+      "sensitivity": "internal",
+      "attachable": true,
+      "relative_path": null,
+      "row_refs": [],
+      "detail": "Prior period operating bank statement cutoff."
+    },
+    {
+      "feed_id": "frost_payroll_sweep",
+      "file_name": "frost-payroll-sweep-2026-11-13.csv",
+      "as_of": "2026-11-13",
+      "sensitivity": "internal",
+      "attachable": true,
+      "relative_path": null,
+      "row_refs": [],
+      "detail": "Prior period payroll sweep cutoff."
+    },
+    {
+      "feed_id": "ar_aging",
+      "file_name": "ar-aging-2026-11-11.xlsx",
+      "as_of": "2026-11-11",
+      "sensitivity": "internal",
+      "attachable": true,
+      "relative_path": null,
+      "row_refs": [],
+      "detail": "Prior period multi-branch A/R aging snapshot."
+    }
+  ],
+  "narrative": {
+    "headline": "Opening cash of $1.80M provides $1.05M+ liquidity headroom above the $750k floor.",
+    "highlights": [
+      "Week 1 (ending 2026-11-20) projected ending cash of $1,808,465.65.",
+      "Methodist Health Facilities invoice INV-2026-8814 ($64,250.00) forecast for collection in Week 2 (ending 2026-11-27).",
+      "Tulsa QuickBooks A/R feed remains active through 2026-11-30 ahead of the 2026-12-01 cloud ERP cutover."
+    ]
+  },
+  "artifacts": {
+    "liquidity_pdf": "editions/weekly/2026-11-13/edition-001/Weekly-Liquidity-Update.pdf",
+    "cash_flow_pdf": "editions/weekly/2026-11-13/edition-001/13-Week-Cash-Flow.pdf"
+  },
+  "summary_counts": {
+    "blocking_checks": 0,
+    "open_review_checks": 0,
+    "notes": 1,
+    "pending_changes": 0,
+    "can_approve": true
+  }
+}

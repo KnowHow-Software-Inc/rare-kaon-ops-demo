@@ -1,0 +1,20 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "rare-kaon-ops-demo",
+  "description": "Rare Kaon open-methodology Portfolio Finance & Ops Co-Pilot demonstration plugin.",
+  "owner": {
+    "name": "Rare Kaon (KnowHow Software, Inc.)",
+    "url": "https://rarekaon.com"
+  },
+  "plugins": [
+    {
+      "name": "rare-kaon-ops-demo",
+      "description": "Self-contained Portfolio Finance & Ops Co-Pilot demonstrating declarative YAML config, a single canonical ReportModel, deterministic controls, stateless what-if simulation, and hard-stop governance on synthetic data.",
+      "version": "0.1.0",
+      "author": {
+        "name": "Rare Kaon"
+      },
+      "source": "./"
+    }
+  ]
+}

@@ -1,0 +1,443 @@
+{
+  "schema_version": 1,
+  "generator_seed": 20261120,
+  "company_name": "Heartland Mechanical Services, LLC",
+  "periods": {
+    "weekly": "2026-11-20",
+    "prior_weekly": "2026-11-13",
+    "payroll": "2026-11-15"
+  },
+  "cash_floor_usd": 750000.0,
+  "bank_accounts": {
+    "as_of_2026_11_13": {
+      "frost_operating": 1611475.65,
+      "frost_payroll_sweep": 184200.0,
+      "total_cash": 1795675.65
+    },
+    "as_of_2026_11_20": {
+      "frost_operating": 1658415.4,
+      "frost_payroll_sweep": 184200.0,
+      "total_cash": 1842615.4
+    },
+    "opening_2026_11_09": {
+      "frost_operating": 1394926.3,
+      "frost_payroll_sweep": 184200.0
+    },
+    "transaction_counts": {
+      "frost_operating": 16,
+      "frost_payroll_sweep": 5
+    }
+  },
+  "variance_bridge": {
+    "baseline_period": "2026-11-13",
+    "shared_date": "2026-11-20",
+    "prior_value": 1808465.65,
+    "current_value": 1842615.4,
+    "delta": 34149.75,
+    "drivers": [
+      {
+        "key": "early_ar_methodist",
+        "label": "Early collection — Methodist Health Facilities (INV-2026-8814)",
+        "amount": 64250.0,
+        "source_file": "frost-operating-2026-11-20.csv",
+        "source_date": "2026-11-18",
+        "source_ref": "INV-2026-8814"
+      },
+      {
+        "key": "payroll_overtime_20261113",
+        "label": "Seasonal overtime above baseline — 2026-11-13 biweekly payroll run",
+        "amount": -11480.25,
+        "source_file": "payroll-voucher-2026-11-15.csv",
+        "source_date": "2026-11-15",
+        "source_ref": "PEO-WIRE-2026-1115"
+      },
+      {
+        "key": "emergency_compressor_aus02",
+        "label": "Emergency compressor parts order — AUS-02",
+        "amount": -18620.0,
+        "source_file": "frost-operating-2026-11-20.csv",
+        "source_date": "2026-11-19",
+        "source_ref": "AUS-EMERG-9042"
+      }
+    ]
+  },
+  "ar_aging": {
+    "as_of": "2026-11-18",
+    "account_count": 28,
+    "total": 2148750.0,
+    "buckets": {
+      "current": 1094325.0,
+      "d1_30": 699175.0,
+      "d31_60": 252150.0,
+      "d61_90": 71350.0,
+      "over_90": 31750.0
+    },
+    "branch_totals": {
+      "DAL-01": 1206200.0,
+      "AUS-02": 629100.0,
+      "TUL-03": 313450.0
+    },
+    "ar_over_60": 103100.0,
+    "overdue_items": [
+      {
+        "invoice_id": "INV-2026-7305",
+        "customer": "Capitol Tower Property Management",
+        "branch": "AUS-02",
+        "invoice_date": "2026-07-07",
+        "due_date": "2026-08-06",
+        "days_past_due": 104,
+        "bucket": ">90",
+        "amount": 31750.0,
+        "note": "Escalated to Controller Rachel Morales; payment plan under review"
+      },
+      {
+        "invoice_id": "INV-2026-7941",
+        "customer": "Richardson ISD Facilities",
+        "branch": "DAL-01",
+        "invoice_date": "2026-08-06",
+        "due_date": "2026-09-05",
+        "days_past_due": 74,
+        "bucket": "61-90",
+        "amount": 48900.0,
+        "note": "Awaiting signed final lien waiver from DAL-01 project manager"
+      },
+      {
+        "invoice_id": "INV-2026-8012",
+        "customer": "Barton Creek Hospitality Group",
+        "branch": "AUS-02",
+        "invoice_date": "2026-08-13",
+        "due_date": "2026-09-12",
+        "days_past_due": 67,
+        "bucket": "61-90",
+        "amount": 22450.0,
+        "note": "Partial dispute over after-hours chiller dispatch rate"
+      }
+    ]
+  },
+  "weekly_forecast": {
+    "open_review_fuel_estimate": 14200.0,
+    "baseline": {
+      "opening_cash": 1842615.4,
+      "week1_ending_cash": 1888865.4,
+      "week2_outflows": 516100.0,
+      "week2_ending_cash": 1764765.4,
+      "week13_ending_cash": 2178115.4,
+      "min_cash_balance": 1760555.4,
+      "weeks": [
+        {
+          "week_num": 1,
+          "week_ending": "2026-11-27",
+          "opening_cash": 1842615.4,
+          "inflows": 315000.0,
+          "outflows": 268750.0,
+          "net_cash": 46250.0,
+          "ending_cash": 1888865.4,
+          "notes": "Scheduled AP $148,750.00"
+        },
+        {
+          "week_num": 2,
+          "week_ending": "2026-12-04",
+          "opening_cash": 1888865.4,
+          "inflows": 392000.0,
+          "outflows": 516100.0,
+          "net_cash": -124100.0,
+          "ending_cash": 1764765.4,
+          "notes": "Biweekly payroll week; Scheduled AP $116,420.00; Includes Estimated monthly fleet fuel card auto-draft ($14,200.00 est.)"
+        },
+        {
+          "week_num": 3,
+          "week_ending": "2026-12-11",
+          "opening_cash": 1764765.4,
+          "inflows": 405000.0,
+          "outflows": 228950.0,
+          "net_cash": 176050.0,
+          "ending_cash": 1940815.4,
+          "notes": "Scheduled AP $108,950.00"
+        },
+        {
+          "week_num": 4,
+          "week_ending": "2026-12-18",
+          "opening_cash": 1940815.4,
+          "inflows": 398000.0,
+          "outflows": 497780.0,
+          "net_cash": -99780.0,
+          "ending_cash": 1841035.4,
+          "notes": "Biweekly payroll week; Scheduled AP $112,300.00"
+        },
+        {
+          "week_num": 5,
+          "week_ending": "2026-12-25",
+          "opening_cash": 1841035.4,
+          "inflows": 295000.0,
+          "outflows": 235000.0,
+          "net_cash": 60000.0,
+          "ending_cash": 1901035.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 6,
+          "week_ending": "2027-01-01",
+          "opening_cash": 1901035.4,
+          "inflows": 360000.0,
+          "outflows": 500480.0,
+          "net_cash": -140480.0,
+          "ending_cash": 1760555.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 7,
+          "week_ending": "2027-01-08",
+          "opening_cash": 1760555.4,
+          "inflows": 395000.0,
+          "outflows": 235000.0,
+          "net_cash": 160000.0,
+          "ending_cash": 1920555.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 8,
+          "week_ending": "2027-01-15",
+          "opening_cash": 1920555.4,
+          "inflows": 402000.0,
+          "outflows": 500480.0,
+          "net_cash": -98480.0,
+          "ending_cash": 1822075.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 9,
+          "week_ending": "2027-01-22",
+          "opening_cash": 1822075.4,
+          "inflows": 410000.0,
+          "outflows": 235000.0,
+          "net_cash": 175000.0,
+          "ending_cash": 1997075.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 10,
+          "week_ending": "2027-01-29",
+          "opening_cash": 1997075.4,
+          "inflows": 405000.0,
+          "outflows": 500480.0,
+          "net_cash": -95480.0,
+          "ending_cash": 1901595.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 11,
+          "week_ending": "2027-02-05",
+          "opening_cash": 1901595.4,
+          "inflows": 412000.0,
+          "outflows": 235000.0,
+          "net_cash": 177000.0,
+          "ending_cash": 2078595.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 12,
+          "week_ending": "2027-02-12",
+          "opening_cash": 2078595.4,
+          "inflows": 415000.0,
+          "outflows": 500480.0,
+          "net_cash": -85480.0,
+          "ending_cash": 1993115.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 13,
+          "week_ending": "2027-02-19",
+          "opening_cash": 1993115.4,
+          "inflows": 420000.0,
+          "outflows": 235000.0,
+          "net_cash": 185000.0,
+          "ending_cash": 2178115.4,
+          "notes": "Baseline operating cadence"
+        }
+      ]
+    },
+    "deferred_lone_star": {
+      "invoice_ref": "LSS-2026-4189",
+      "amount": 25000.0,
+      "old_due_date": "2026-11-25",
+      "new_due_date": "2026-12-02",
+      "old_week": 1,
+      "new_week": 2,
+      "week1_ending_cash": 1913865.4,
+      "week2_outflows": 541100.0,
+      "week2_ending_cash": 1764765.4,
+      "week13_ending_cash": 2178115.4,
+      "min_cash_balance": 1760555.4,
+      "deltas": {
+        "week1_ending_cash": 25000.0,
+        "week2_outflows": 25000.0,
+        "week2_ending_cash": 0.0,
+        "week13_ending_cash": 0.0
+      },
+      "weeks": [
+        {
+          "week_num": 1,
+          "week_ending": "2026-11-27",
+          "opening_cash": 1842615.4,
+          "inflows": 315000.0,
+          "outflows": 243750.0,
+          "net_cash": 71250.0,
+          "ending_cash": 1913865.4,
+          "notes": "Scheduled AP $123,750.00"
+        },
+        {
+          "week_num": 2,
+          "week_ending": "2026-12-04",
+          "opening_cash": 1913865.4,
+          "inflows": 392000.0,
+          "outflows": 541100.0,
+          "net_cash": -149100.0,
+          "ending_cash": 1764765.4,
+          "notes": "Biweekly payroll week; Scheduled AP $141,420.00; Includes Estimated monthly fleet fuel card auto-draft ($14,200.00 est.); Includes deferred LSS-2026-4189"
+        },
+        {
+          "week_num": 3,
+          "week_ending": "2026-12-11",
+          "opening_cash": 1764765.4,
+          "inflows": 405000.0,
+          "outflows": 228950.0,
+          "net_cash": 176050.0,
+          "ending_cash": 1940815.4,
+          "notes": "Scheduled AP $108,950.00"
+        },
+        {
+          "week_num": 4,
+          "week_ending": "2026-12-18",
+          "opening_cash": 1940815.4,
+          "inflows": 398000.0,
+          "outflows": 497780.0,
+          "net_cash": -99780.0,
+          "ending_cash": 1841035.4,
+          "notes": "Biweekly payroll week; Scheduled AP $112,300.00"
+        },
+        {
+          "week_num": 5,
+          "week_ending": "2026-12-25",
+          "opening_cash": 1841035.4,
+          "inflows": 295000.0,
+          "outflows": 235000.0,
+          "net_cash": 60000.0,
+          "ending_cash": 1901035.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 6,
+          "week_ending": "2027-01-01",
+          "opening_cash": 1901035.4,
+          "inflows": 360000.0,
+          "outflows": 500480.0,
+          "net_cash": -140480.0,
+          "ending_cash": 1760555.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 7,
+          "week_ending": "2027-01-08",
+          "opening_cash": 1760555.4,
+          "inflows": 395000.0,
+          "outflows": 235000.0,
+          "net_cash": 160000.0,
+          "ending_cash": 1920555.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 8,
+          "week_ending": "2027-01-15",
+          "opening_cash": 1920555.4,
+          "inflows": 402000.0,
+          "outflows": 500480.0,
+          "net_cash": -98480.0,
+          "ending_cash": 1822075.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 9,
+          "week_ending": "2027-01-22",
+          "opening_cash": 1822075.4,
+          "inflows": 410000.0,
+          "outflows": 235000.0,
+          "net_cash": 175000.0,
+          "ending_cash": 1997075.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 10,
+          "week_ending": "2027-01-29",
+          "opening_cash": 1997075.4,
+          "inflows": 405000.0,
+          "outflows": 500480.0,
+          "net_cash": -95480.0,
+          "ending_cash": 1901595.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 11,
+          "week_ending": "2027-02-05",
+          "opening_cash": 1901595.4,
+          "inflows": 412000.0,
+          "outflows": 235000.0,
+          "net_cash": 177000.0,
+          "ending_cash": 2078595.4,
+          "notes": "Baseline operating cadence"
+        },
+        {
+          "week_num": 12,
+          "week_ending": "2027-02-12",
+          "opening_cash": 2078595.4,
+          "inflows": 415000.0,
+          "outflows": 500480.0,
+          "net_cash": -85480.0,
+          "ending_cash": 1993115.4,
+          "notes": "Biweekly payroll week"
+        },
+        {
+          "week_num": 13,
+          "week_ending": "2027-02-19",
+          "opening_cash": 1993115.4,
+          "inflows": 420000.0,
+          "outflows": 235000.0,
+          "net_cash": 185000.0,
+          "ending_cash": 2178115.4,
+          "notes": "Baseline operating cadence"
+        }
+      ]
+    }
+  },
+  "payroll": {
+    "pay_date": "2026-11-15",
+    "pay_period_end": "2026-11-13",
+    "employee_count": 18,
+    "mapped_employees": 17,
+    "unmapped_employees": 1,
+    "blocked_employee_id": "EMP-1048",
+    "blocked_employee_name": "Marcus Delgado",
+    "blocked_branch": "TUL-03",
+    "blocked_dept_code": "TUL-INSTALL-NEW",
+    "regular_wages": 61430.0,
+    "overtime_wages": 11480.25,
+    "gross_wages": 72910.25,
+    "employer_fica": 5577.65,
+    "employer_futa_suta": 162.0,
+    "employer_taxes": 5739.65,
+    "employer_401k_match": 2916.41,
+    "employer_medical": 8450.0,
+    "employer_benefits": 11366.41,
+    "employee_withholdings": 20277.62,
+    "net_pay": 52632.63,
+    "employer_cost_total": 90016.31,
+    "funding_wire_total": 69738.69,
+    "variance_cents": 0,
+    "mapping_approval_ref": null
+  },
+  "cutover": {
+    "legacy_feed_id": "tulsa_qb_ar",
+    "legacy_active_until": "2026-11-30",
+    "replacement_feed_id": "unified_erp_ar",
+    "replacement_active_from": "2026-12-01"
+  }
+}

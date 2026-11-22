@@ -1,0 +1,20 @@
+# Local materialized demo workspace (never commit mutated demo state)
+heartland-demo/
+
+# Build & packaging outputs
+build/
+dist/
+vendor/
+*.egg-info/
+
+# Python environments & caches
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# OS & editor artifacts
+.DS_Store
+Thumbs.db
+*.swp

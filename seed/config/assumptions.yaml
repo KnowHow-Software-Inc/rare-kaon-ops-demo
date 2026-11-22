@@ -1,0 +1,73 @@
+schema_version: 1
+company:
+  name: Heartland Mechanical Services, LLC
+  branches:
+  - code: DAL-01
+    name: Dallas Metro Commercial
+    revenue_share_pct: 55
+  - code: AUS-02
+    name: Austin Commercial & Controls
+    revenue_share_pct: 30
+  - code: TUL-03
+    name: Tulsa Comfort Systems
+    revenue_share_pct: 15
+  erp_cutover_date: '2026-12-01'
+weekly:
+  cash_floor_usd: 750000.0
+  horizon_weeks: 13
+  biweekly_payroll_baseline_usd: 265480.0
+  biweekly_payroll_weeks:
+  - 2
+  - 4
+  - 6
+  - 8
+  - 10
+  - 12
+  recurring_inflows_by_week:
+    1: 315000.0
+    2: 392000.0
+    3: 405000.0
+    4: 398000.0
+    5: 295000.0
+    6: 360000.0
+    7: 395000.0
+    8: 402000.0
+    9: 410000.0
+    10: 405000.0
+    11: 412000.0
+    12: 415000.0
+    13: 420000.0
+  recurring_operating_outflows_by_week:
+    1: 120000.0
+    2: 120000.0
+    3: 120000.0
+    4: 120000.0
+    5: 235000.0
+    6: 235000.0
+    7: 235000.0
+    8: 235000.0
+    9: 235000.0
+    10: 235000.0
+    11: 235000.0
+    12: 235000.0
+    13: 235000.0
+  open_review_estimates:
+  - id: WK-REV-001
+    title: Estimated monthly fleet fuel card auto-draft
+    vendor: WEX Fleet Commercial Fuel
+    forecast_week: 2
+    week_ending: '2026-12-04'
+    amount_usd: 14200.0
+    severity: open_review
+    owner: Claire Vance
+    detail: Estimated monthly fleet fuel card auto-draft ($14,200.00 placeholder for Week 2) has not yet
+      been confirmed by statement.
+    next_step: Replace placeholder with actual WEX statement balance upon receipt (expected 2026-11-30).
+payroll:
+  tieout_tolerance_cents: 0
+  erp_posting_mode: sandbox
+  mapping_approval_ref: null
+  mapping_approval_owner: Rachel Morales
+  require_all_departments_mapped: true
+  overtime_baseline_usd: 0.0
+  field_batch_funding_baseline_usd: 58258.44

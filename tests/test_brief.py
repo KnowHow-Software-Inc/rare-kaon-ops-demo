@@ -211,6 +211,9 @@ def test_brief_declined_amendment_and_approval_ref_and_previewed_deferral(tmp_pa
     assert "Stateless What-If Preview (In Memory)" in html_p
     assert "$1,913,865.40" in html_p
     assert "modified zero workspace files" in html_p
+    # Only the agent knows the preview happened in session; the engine only re-ran the figures
+    assert env_p["data"]["evidence"][1]["evidence_level"] == "agent_reported"
+    assert "Preview reported by the assistant" in html_p
 
     # 2. Declined amendment renders "Amendment declined" (never "staged")
     rc, _ = _run_cli(
@@ -322,3 +325,34 @@ def test_brief_spec_validation_and_long_text_pdf_fit(tmp_path: Path, capsys) -> 
     assert rc_long == 0 and env_long["ok"] is True
     assert env_long["data"]["page_count"] == 2
     assert _count_pdf_pages(Path(env_long["data"]["brief_pdf"])) == 2
+
+
+def test_brief_wording_matches_the_exact_question_and_refusal(tmp_path: Path, capsys) -> None:
+    """An A/R-only question is not described as a cash-bridge question, and an approval
+    refusal is not described as a posting refusal."""
+    ws = tmp_path / "heartland-demo"
+    init_workspace(ws)
+
+    rc, _ = _run_cli(capsys, "explain", "--data", str(ws), "--topic", "ar_over_60", "--period", "2026-11-20", "--json")
+    assert rc == 0
+    rc, _ = _run_cli(capsys, "prepare", "--data", str(ws), "--module", "payroll", "--period", "2026-11-15", "--json")
+    assert rc == 0
+    rc, env_a = _run_cli(
+        capsys, "approve", "--data", str(ws), "--module", "payroll", "--period", "2026-11-15", "--by", "Claire Vance", "--json"
+    )
+    assert env_a["ok"] is False
+
+    rc_b, env_b = _run_cli(capsys, "brief", "--data", str(ws), "--json")
+    assert rc_b == 0 and env_b["ok"] is True
+    html = Path(env_b["data"]["brief_html"]).read_text(encoding="utf-8")
+
+    assert "When asked which receivables drive liquidity risk" in html
+    assert "When asked why opening cash" not in html
+    assert "traced overdue receivables to individual invoices" in html
+
+    assert "refused payroll approval" in html
+    assert "refused ERP posting" not in html
+    assert "blocked an unapproved payroll posting" not in html
+    assert "Payroll approval blocked" in html
+    assert "1 blocked approval attempt" in env_b["data"]["rollup_summary"]
+    assert _count_pdf_pages(Path(env_b["data"]["brief_pdf"])) == 2

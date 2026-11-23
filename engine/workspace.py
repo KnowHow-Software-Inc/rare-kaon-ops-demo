@@ -400,6 +400,24 @@ def _choose_default_workspace_path() -> Path:
     return tmp_candidate
 
 
+def _is_packaged_plugin_root(pkg_root: Path) -> bool:
+    """Return True when `pkg_root` is an unpacked release (not a git working tree)."""
+    return (pkg_root / "release.json").is_file() or (pkg_root / "vendor").is_dir()
+
+
+def session_root_for(cwd: Path) -> Path:
+    """Return the session directory that owns `cwd`.
+
+    When the agent has changed into the unpacked plugin folder (or one of its
+    subfolders), the session directory is the plugin folder's parent, which is
+    where `_choose_default_workspace_path` materializes `heartland-demo/`.
+    """
+    cwd_res = cwd.resolve()
+    if _is_inside_packaged_plugin(cwd_res):
+        return PACKAGE_ROOT.resolve().parent
+    return cwd_res
+
+
 def resolve_workspace(
     explicit_data: str | Path | None = None,
     *,
@@ -410,6 +428,15 @@ def resolve_workspace(
         target = Path(explicit_data).expanduser().resolve()
         if is_marked_workspace(target):
             return target
+        pkg_res = PACKAGE_ROOT.resolve()
+        if _is_packaged_plugin_root(pkg_res) and (target == pkg_res or pkg_res in target.parents):
+            sibling = pkg_res.parent / WORKSPACE_DIR_NAME
+            raise EngineError(
+                "WORKSPACE_INSIDE_PLUGIN_REFUSED",
+                f"Refused to create a workspace inside the unpacked plugin folder ({target}).",
+                f"Omit `--data` so the engine reuses the session workspace, or pass `--data {sibling}`.",
+                details={"path": str(target), "session_workspace": str(sibling)},
+            )
         if not auto_init:
             return target
         # Safety check: never clobber an existing non-empty directory missing the marker

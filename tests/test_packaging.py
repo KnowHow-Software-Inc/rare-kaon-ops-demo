@@ -177,6 +177,22 @@ def test_session_workspace_not_hijacked_by_preexisting_home_or_plugin_cwd(tmp_pa
     ov_b = json.loads(proc_b.stdout)
     assert Path(ov_b["data"]["workspace_dir"]).resolve() == (session_b / "heartland-demo").resolve()
     assert (session_b / "heartland-demo" / "Reports.html").is_file()
+    # The sibling workspace belongs to the session, so it must not be flagged as outside it
+    assert "workspace_outside_session" not in ov_b
+
+    # An explicit `--data ./heartland-demo` from inside the plugin folder must be refused,
+    # never materializing a second, split workspace inside the plugin
+    proc_b2 = subprocess.run(
+        [system_python, "-S", str(run_cli_b), "overview", "--data", "./heartland-demo", "--json"],
+        cwd=str(plugin_b),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    env_b2 = json.loads(proc_b2.stdout)
+    assert env_b2["ok"] is False
+    assert env_b2["error_code"] == "WORKSPACE_INSIDE_PLUGIN_REFUSED"
+    assert not (plugin_b / "heartland-demo").exists()
 
     # Scenario 3: Plugin installed under ~/.claude/plugins/cache/... — must NOT write inside
     # .claude/plugins/, and instead fall back to ~/.rare-kaon-ops-demo/heartland-demo

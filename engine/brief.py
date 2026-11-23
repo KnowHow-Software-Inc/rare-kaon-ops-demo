@@ -461,7 +461,8 @@ def build_session_brief_data(
         a_wk13 = _to_dec(scen_k["week13_ending_cash"])
         moment2 = {
             "mode": "previewed",
-            "evidence_level": "engine_verified",
+            # The engine re-runs the figures, but only the agent knows the preview happened in session.
+            "evidence_level": "agent_reported",
             "title": "Operators tested a payment shift in memory without changing saved files",
             "vendor": str(ov_info.get("vendor") or ""),
             "invoice_ref": str(ov_info.get("invoice_ref") or ""),
@@ -476,7 +477,7 @@ def build_session_brief_data(
                 {"label": "Week 2 ending cash", "before": b_wk2, "after": a_wk2, "changed": b_wk2 != a_wk2},
                 {"label": "Week 13 ending cash", "before": b_wk13, "after": a_wk13, "changed": b_wk13 != a_wk13},
             ],
-            "source_note": "Stateless preview ran in memory (zero disk writes); Draft 1 remains unchanged.",
+            "source_note": "Preview reported by the assistant; figures re-run in memory by the engine (zero disk writes).",
         }
     elif pending_changes:
         pc = pending_changes[-1]
@@ -587,7 +588,11 @@ def build_session_brief_data(
     pay_status_short = (
         "Payroll post blocked"
         if post_refused
-        else ("Payroll draft prepared" if payroll_prepared else "Payroll readiness checked")
+        else (
+            "Payroll approval blocked"
+            if approve_refused
+            else ("Payroll draft prepared" if payroll_prepared else "Payroll readiness checked")
+        )
     )
     if weekly_latest.meta.is_approved and weekly_latest.meta.edition_number:
         wk_status_short = f"Edition {weekly_latest.meta.edition_number} approved"
@@ -603,7 +608,10 @@ def build_session_brief_data(
         rollup_parts.append(f"{decision_count} logged decision{'s' if decision_count != 1 else ''}")
     if post_refusal_events:
         rollup_parts.append(f"{len(post_refusal_events)} blocked post attempt{'s' if len(post_refusal_events) != 1 else ''}")
-    elif blocking_total:
+    if approve_refusal_events:
+        n_appr = len(approve_refusal_events)
+        rollup_parts.append(f"{n_appr} blocked approval attempt{'s' if n_appr != 1 else ''}")
+    if not post_refusal_events and not approve_refusal_events and blocking_total:
         rollup_parts.append(f"{blocking_total} active blocking check{'s' if blocking_total != 1 else ''}")
     if cited_non_attachable:
         n_conf = len(cited_non_attachable)

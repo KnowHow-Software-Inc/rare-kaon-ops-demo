@@ -32,6 +32,7 @@ from engine.workspace import (
     init_workspace,
     reset_workspace,
     resolve_workspace,
+    session_root_for,
 )
 
 # Commands logged to `session-events.jsonl` for grounded Session Brief evidence.
@@ -178,11 +179,16 @@ def build_parser() -> _JsonArgumentParser:
 
 
 def _annotate_workspace_scope(envelope: dict[str, Any], ws: Path) -> dict[str, Any]:
-    """Flag when the resolved workspace lies outside the active session CWD."""
+    """Flag when the resolved workspace lies outside the active session directory.
+
+    The session directory is the CWD, or the unpacked plugin folder's parent when
+    the agent has changed into the plugin folder (see `session_root_for`).
+    """
     try:
         cwd = Path.cwd().resolve()
+        root = session_root_for(cwd)
         ws_res = ws.resolve()
-        inside = ws_res == cwd or cwd in ws_res.parents or ws_res in cwd.parents
+        inside = ws_res == root or root in ws_res.parents or ws_res in cwd.parents
     except OSError:
         return envelope
     if not inside:

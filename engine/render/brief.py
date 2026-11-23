@@ -164,16 +164,20 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
     # Page 1 Lead: assemble only from engine-verified / engine-logged facts
     # ------------------------------------------------------------------
     done_clauses = ["built this week’s leadership pack"]
-    if m1["asked_cash_bridge"] or m1["asked_ar_over_60"]:
+    if m1["asked_cash_bridge"]:
         done_clauses.append("traced variances directly to underlying transactions")
+    elif m1["asked_ar_over_60"]:
+        done_clauses.append("traced overdue receivables to individual invoices")
     if m2["mode"] == "revised":
         done_clauses.append("committed a confirmed payment revision")
     elif m2["mode"] == "declined":
         done_clauses.append("recorded a declined amendment while keeping the baseline intact")
     elif m2["mode"] == "previewed":
         done_clauses.append("previewed a payment deferral in memory")
-    if m3["post_refused"] or m3["approve_refused"]:
+    if m3["post_refused"]:
         done_clauses.append("blocked an unapproved payroll posting")
+    elif m3["approve_refused"]:
+        done_clauses.append("refused to approve payroll while blocking checks were open")
     elif m3["payroll_prepared"]:
         done_clauses.append("prepared payroll with blocking controls active")
     else:
@@ -203,7 +207,22 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
     drv_n = int(m1["driver_count"])
     drv_word = f"{drv_n} transaction{'s' if drv_n != 1 else ''}"
 
-    if m1["asked_cash_bridge"] or m1["asked_ar_over_60"]:
+    if m1["asked_ar_over_60"] and not m1["asked_cash_bridge"]:
+        m1_html = (
+            f"When asked which receivables drive liquidity risk, the system surfaced <strong>{_esc(ar60_whole)}</strong> "
+            f"in A/R past 60 days by invoice. Opening cash {m1_dir} last week’s plan by {_esc(delta_abs)}, reconciled "
+            f"across {drv_word} in Frost Commercial Banking and biweekly payroll. Because chat answers, the web "
+            f"dashboard, and the PDFs read one verified calculation, leadership can interrogate the pack live "
+            f"without creating a second version of the truth."
+        )
+        m1_rl = (
+            f"When asked which receivables drive liquidity risk, the system surfaced <b>{_xesc(ar60_whole)}</b> "
+            f"in A/R past 60 days by invoice. Opening cash {m1_dir} last week’s plan by {_xesc(delta_abs)}, reconciled "
+            f"across {drv_word} in Frost Commercial Banking and biweekly payroll. Because chat answers, the web "
+            f"dashboard, and the PDFs read one verified calculation, leadership can interrogate the pack live "
+            f"without creating a second version of the truth."
+        )
+    elif m1["asked_cash_bridge"]:
         m1_html = (
             f"When asked why opening cash {m1_dir} last week’s plan by <strong>{_esc(delta_abs)}</strong>, "
             f"the system traced the gap to {drv_word} across Frost Commercial Banking and biweekly payroll—"
@@ -345,7 +364,12 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
 
     if m3["post_refused"] or m3["approve_refused"]:
         m3_heading = "Accounting holds and privacy walls held even when the math balanced"
-        m3_action = f"The system refused ERP posting because {reason_clause}." if reason_clause else "The system refused ERP posting under its active governance gate."
+        refused_what = "ERP posting" if m3["post_refused"] else "payroll approval"
+        m3_action = (
+            f"The system refused {refused_what} because {reason_clause}."
+            if reason_clause
+            else f"The system refused {refused_what} under its active governance gate."
+        )
     elif has_block or not has_ref:
         m3_heading = "Accounting holds and privacy walls enforce sign-off even when math ties"
         m3_action = f"Approval and ERP posting remain blocked because {reason_clause}."

@@ -75,9 +75,11 @@ def build_privacy_file_lists(
             }
         )
 
-    # Hub HTML dashboards
+    # Hub HTML dashboards and generated executive session briefs (if present)
     _add_attachable("Reports.html", "dashboard", "internal")
     _add_attachable("Setup.html", "dashboard", "internal")
+    _add_attachable("Session-Brief.html", "session_brief_html", "board")
+    _add_attachable("Session-Brief.pdf", "session_brief_pdf", "board")
 
     # Model artifacts and attachable sources
     for model in models:

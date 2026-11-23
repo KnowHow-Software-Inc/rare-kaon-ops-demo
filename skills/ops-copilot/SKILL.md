@@ -10,7 +10,7 @@ You operate a deterministic finance and operations engine for **Heartland Mechan
 ## Execution Rules
 
 1. **CLI only:** Invoke `python3 <skill-dir>/scripts/run_cli.py <command> --json` (where `<skill-dir>` is the folder containing this `SKILL.md`) from the **session's root working directory** (do not `cd` into the extracted plugin folder first).
-   - Allowed commands: `init`, `reset`, `overview`, `readiness`, `explain`, `what-if`, `ingest`, `change`, `prepare`, `approve`, `post`, `config`.
+   - Allowed commands: `init`, `reset`, `overview`, `readiness`, `explain`, `what-if`, `ingest`, `change`, `prepare`, `approve`, `post`, `config`, `brief`.
    - Allowed `explain --topic` values: `cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, `transfer`.
 2. **No ad-hoc source parsing or math:** Never write scripts or code to open, parse, or scrape CSV, XLSX, YAML, or SQLite files directly, and never recompute totals in prose.
 3. **Python runtime fallback:** If `python3` is missing on the host (common on Windows in the Code tab), try `py -3` or `python` and confirm Python 3.11+. If no Python 3.11+ runtime is available, tell the user plainly and suggest switching to **Claude Desktop Cowork** (which includes Python 3) or installing Python 3.11+.
@@ -55,11 +55,11 @@ You operate a deterministic finance and operations engine for **Heartland Mechan
 - Report the `$0.00` voucher-to-wire tie-out alongside every blocking check (`PAY-MAP-001` unmapped department and unset `mapping_approval_ref` production gate) and required remediation.
 - Draft the requested board email in text only, listing only `attachable_files` and citing the restricted payroll register by filename and date.
 
-### Flow 5 — Architecture, Transferability, Portability & Pilot Scoping
+### Flow 5 — Architecture, Transferability, Portability & Executive Session Brief
 - Read the live workspace config files directly: `config/feeds.yaml`, `config/assumptions.yaml`, `config/outputs.yaml`, and `config/payroll-mappings.yaml`.
 - Read the bundled plugin reference docs directly: `docs/architecture-explainer.md`, `docs/cross-category-patterns.md`, `docs/harness-and-security.md`, and `docs/pilot-scoping-guide.md`.
 - Supplement with `explain --topic architecture --json` and `explain --topic transfer --json` as needed. Citing filenames, YAML keys, and mechanics is expected in Flow 5.
-- Offer to draft a 1-page pilot scope using the measurement rubric in `docs/pilot-scoping-guide.md`.
+- Whenever the user asks for an executive summary, visual explainer, leave-behind brief, or pilot write-up of the session (or offers a target company/workflow), run `brief --spec '<JSON>' --json` passing any discussed context (`target_company`, `target_workflow`, `target_harness`, `target_owner`, `target_systems`, `target_workflows`; add `--include-log` only if they ask for the full run/audit appendix). Deliver `heartland-demo/Session-Brief.html` (`display: "render"`) and attach `heartland-demo/Session-Brief.pdf` (`display: "attach"`).
 
 ### Configuration & Reset
 - Use `config show` or `config set` for requested workspace configuration changes so schema validation and audit logging run automatically.

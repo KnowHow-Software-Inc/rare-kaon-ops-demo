@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Any, Sequence
 
+from engine.brief import generate_session_brief
 from engine.config import CONFIG_TARGETS, EngineError, config_set, config_show
 from engine.contracts import (
     DEFAULT_PAYROLL_PERIOD,
@@ -141,6 +142,27 @@ def build_parser() -> _JsonArgumentParser:
     p_cfg.add_argument("--reason", default="", help="Optional audit rationale (for `set`).")
     _add_common_flags(p_cfg)
 
+    # 13. brief
+    p_brief = sub.add_parser(
+        "brief",
+        help="Render a 2-page Rare Kaon executive Session Brief (HTML + PDF) from live workspace state.",
+    )
+    p_brief.add_argument(
+        "--spec",
+        default=None,
+        help="Optional JSON object customizing Page 2 (target_company, target_workflow, target_harness, target_owner, target_systems, target_workflows).",
+    )
+    p_brief.add_argument("--target-company", default=None, help="Target company or portfolio label for Page 2.")
+    p_brief.add_argument("--target-workflow", default=None, help="Named first workflow for Page 2 pilot scope.")
+    p_brief.add_argument("--target-harness", default=None, help="Buyer preferred AI harness (claude, codex, m365_copilot).")
+    p_brief.add_argument(
+        "--include-log",
+        action="store_true",
+        default=False,
+        help="Append an optional Page 3 audit log and run history appendix.",
+    )
+    _add_common_flags(p_brief)
+
     return parser
 
 
@@ -255,10 +277,21 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
             )
         return ok_envelope("config", data, workspace=str(ws))
 
+    if cmd == "brief":
+        data = generate_session_brief(
+            ws,
+            spec_json=args.spec,
+            target_company=args.target_company,
+            target_workflow=args.target_workflow,
+            target_harness=args.target_harness,
+            include_log=bool(args.include_log),
+        )
+        return ok_envelope("brief", data, workspace=str(ws))
+
     raise EngineError(
         "UNKNOWN_COMMAND",
         f"Unsupported CLI command {cmd!r}.",
-        "Use one of the 12 supported CLI commands.",
+        "Use one of the supported CLI commands.",
     )
 
 

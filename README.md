@@ -11,12 +11,12 @@ Rare Kaon publishes this architecture in working code rather than hiding it behi
 Paste this single prompt into your agent (requires Python 3.11+; zero `pip install` or `git clone` needed):
 
 ```text
-Install and run the Rare Kaon Ops Demo (v0.1.1): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.1/rare-kaon-ops-demo-v0.1.1.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/; stay in the session root folder rather than cd'ing into the plugin folder), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver heartland-demo/Reports.html and heartland-demo/Setup.html.
+Install and run the Rare Kaon Ops Demo (v0.1.2): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.2/rare-kaon-ops-demo-v0.1.2.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/; stay in the session root folder rather than cd'ing into the plugin folder), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver heartland-demo/Reports.html and heartland-demo/Setup.html.
 ```
 
 ### 60-Second Upload — Claude Desktop (Cowork, Recommended for Non-Technical Evaluators)
 
-1. Download **`rare-kaon-ops-demo-v0.1.1.zip`** from [Releases](https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest).
+1. Download **`rare-kaon-ops-demo-v0.1.2.zip`** from [Releases](https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest).
 2. Open **Claude Desktop** → **Customize** → **Plugins** → **Upload plugin**, and select the ZIP (or drag-and-drop the ZIP into a Cowork chat).
 3. Open a new **Cowork** session (Python 3 is preinstalled inside Cowork; selecting a local folder is optional—pick one if you want to inspect the generated CSV, XLSX, YAML, PDF, and HTML files directly).
 4. Paste Prompt 1:

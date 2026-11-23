@@ -34,7 +34,7 @@ except ImportError as exc:
                 "error_code": "MISSING_RUNTIME_DEPENDENCIES",
                 "cause": f"Required pure-Python runtime package missing: {exc.name}",
                 "suggested_action": (
-                    "Use the self-contained Release ZIP (`rare-kaon-ops-demo-v0.1.1.zip`, which bundles `vendor/`), "
+                    "Use the self-contained Release ZIP (`rare-kaon-ops-demo-v0.1.2.zip`, which bundles `vendor/`), "
                     "or install dependencies once via `pip install -r packaging/plugin-requirements.txt`."
                 ),
             }

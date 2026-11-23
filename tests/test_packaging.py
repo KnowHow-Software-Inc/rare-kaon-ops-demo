@@ -103,6 +103,19 @@ def test_build_plugin_zip_unpacked_python3_isolated_execution_and_zero_forbidden
     assert 'href="runs/weekly/2026-11-20/draft-001/13-Week-Cash-Flow.pdf"' in reports_html_text
     assert 'href="runs/weekly/2026-11-20/draft-001/report-model.json"' not in reports_html_text
 
+    # Executive brief command works under isolated python3 -S (pure-Python ReportLab + HTML)
+    proc_brief = subprocess.run(
+        [system_python, "-S", str(run_cli), "brief", "--target-company", "Apex Mechanical", "--json"],
+        cwd=str(user_cwd),
+        capture_output=True,
+        text=True,
+    )
+    assert proc_brief.returncode == 0, f"brief failed under python3 -S:\n{proc_brief.stdout}\n{proc_brief.stderr}"
+    br = json.loads(proc_brief.stdout)
+    assert br["ok"] is True
+    assert (user_cwd / "heartland-demo" / "Session-Brief.html").is_file()
+    assert (user_cwd / "heartland-demo" / "Session-Brief.pdf").is_file()
+
 
 def test_session_workspace_not_hijacked_by_preexisting_home_or_plugin_cwd(tmp_path: Path) -> None:
     """Regression test for v0.1.1: pre-existing ~/.rare-kaon-ops-demo and plugin-dir CWD."""

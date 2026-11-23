@@ -10,7 +10,7 @@
     {
       "name": "rare-kaon-ops-demo",
       "description": "Self-contained Portfolio Finance & Ops Co-Pilot demonstrating declarative YAML config, a single canonical ReportModel, deterministic controls, stateless what-if simulation, and hard-stop governance on synthetic data.",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "author": {
         "name": "Rare Kaon"
       },

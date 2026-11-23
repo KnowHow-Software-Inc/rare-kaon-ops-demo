@@ -47,6 +47,7 @@ CLI_COMMANDS = (
     "approve",
     "post",
     "config",
+    "brief",
 )
 
 EXPLAIN_TOPICS = (

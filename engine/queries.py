@@ -691,7 +691,7 @@ def query_explain(
             "claude_desktop_cowork": "Implemented today — single vendored pure-Python plugin ZIP running in Cowork's Linux VM.",
             "claude_code_and_codex": "Implemented today — same SKILL.md (Agent Skills standard) + local engine/ CLI with Python 3.11+.",
             "microsoft_365_copilot": (
-                "Architectural extension (not bundled in the v0.1.0 local ZIP): wrap the identical engine/ package in a thin "
+                "Architectural extension (not bundled in the local ZIP): wrap the identical engine/ package in a thin "
                 "Streamable HTTP MCP or OpenAPI adapter (~150 LOC) hosted in Azure Container Apps or Azure Functions with Entra ID SSO, "
                 "and bind Copilot Studio to that endpoint — zero rewrite of accounting, check, or privacy logic."
             ),

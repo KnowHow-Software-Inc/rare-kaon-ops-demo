@@ -728,9 +728,11 @@ def test_render_reports_html_single_model_parity_and_privacy(tmp_path: Path) -> 
     assert "YES — Blocks Approval" in html_text
     assert "NO — Non-Blocking" in html_text
 
-    # Relative artifact links
+    # Relative artifact links (executive deliverables only; omit internal report-model.json)
     assert 'href="runs/weekly/2026-11-20/draft-001/Weekly-Liquidity-Update.pdf"' in html_text
     assert 'href="runs/payroll/2026-11-15/draft-001/payroll-review.xlsx"' in html_text
+    assert 'href="runs/weekly/2026-11-20/draft-001/report-model.json"' not in html_text
+    assert 'href="runs/payroll/2026-11-15/draft-001/report-model.json"' not in html_text
 
     # Restricted source badge & zero leakage of restricted path or row_refs
     assert "Non-Attachable · Citation Only" in html_text

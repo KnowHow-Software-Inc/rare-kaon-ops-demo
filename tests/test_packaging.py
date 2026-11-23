@@ -96,3 +96,92 @@ def test_build_plugin_zip_unpacked_python3_isolated_execution_and_zero_forbidden
     assert rdy["ok"] is True
     assert rdy["data"]["modules"]["weekly"]["kpis"]["opening_cash"] == 1842615.4
     assert rdy["data"]["modules"]["payroll"]["status"] == "blocked"
+
+    # Reports.html should link to executive PDFs and omit internal report-model.json
+    reports_html_text = (user_cwd / "heartland-demo" / "Reports.html").read_text(encoding="utf-8")
+    assert 'href="runs/weekly/2026-11-20/draft-001/Weekly-Liquidity-Update.pdf"' in reports_html_text
+    assert 'href="runs/weekly/2026-11-20/draft-001/13-Week-Cash-Flow.pdf"' in reports_html_text
+    assert 'href="runs/weekly/2026-11-20/draft-001/report-model.json"' not in reports_html_text
+
+
+def test_session_workspace_not_hijacked_by_preexisting_home_or_plugin_cwd(tmp_path: Path) -> None:
+    """Regression test for v0.1.1: pre-existing ~/.rare-kaon-ops-demo and plugin-dir CWD."""
+    import os
+
+    zip_path = REPO_ROOT / "build" / f"rare-kaon-ops-demo-v{__version__}.zip"
+    if not zip_path.is_file():
+        build_plugin(REPO_ROOT / "build")
+
+    system_python = shutil.which("python3")
+    assert system_python is not None
+
+    # Create a fake HOME that ALREADY contains a marked ~/.rare-kaon-ops-demo/heartland-demo
+    fake_home = tmp_path / "fake_home"
+    stale_home_ws = fake_home / ".rare-kaon-ops-demo" / "heartland-demo"
+    stale_home_ws.mkdir(parents=True)
+    (stale_home_ws / ".rare-kaon-demo-workspace.json").write_text(
+        json.dumps({"marker": "rare-kaon-ops-demo", "schema_version": 1}),
+        encoding="utf-8",
+    )
+    env = {**os.environ, "HOME": str(fake_home)}
+
+    # Scenario 1: Fresh session folder with unpacked plugin inside it — must use ./heartland-demo
+    session_a = tmp_path / "session_a"
+    plugin_a = session_a / "rare-kaon-ops-demo-plugin"
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(plugin_a)
+
+    run_cli_a = plugin_a / "skills" / "ops-copilot" / "scripts" / "run_cli.py"
+    proc_a = subprocess.run(
+        [system_python, "-S", str(run_cli_a), "overview", "--refresh", "--json"],
+        cwd=str(session_a),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert proc_a.returncode == 0, f"Scenario 1 failed:\n{proc_a.stdout}\n{proc_a.stderr}"
+    ov_a = json.loads(proc_a.stdout)
+    assert Path(ov_a["data"]["workspace_dir"]).resolve() == (session_a / "heartland-demo").resolve()
+    assert (session_a / "heartland-demo" / "Reports.html").is_file()
+    assert (session_a / "heartland-demo" / "Setup.html").is_file()
+
+    # Scenario 2: Agent cd'd into ./rare-kaon-ops-demo-plugin before invoking run_cli.py —
+    # must materialize sibling <session_b>/heartland-demo, not ~/.rare-kaon-ops-demo/heartland-demo
+    session_b = tmp_path / "session_b"
+    plugin_b = session_b / "rare-kaon-ops-demo-plugin"
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(plugin_b)
+
+    run_cli_b = plugin_b / "skills" / "ops-copilot" / "scripts" / "run_cli.py"
+    proc_b = subprocess.run(
+        [system_python, "-S", str(run_cli_b), "overview", "--json"],
+        cwd=str(plugin_b),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert proc_b.returncode == 0, f"Scenario 2 failed:\n{proc_b.stdout}\n{proc_b.stderr}"
+    ov_b = json.loads(proc_b.stdout)
+    assert Path(ov_b["data"]["workspace_dir"]).resolve() == (session_b / "heartland-demo").resolve()
+    assert (session_b / "heartland-demo" / "Reports.html").is_file()
+
+    # Scenario 3: Plugin installed under ~/.claude/plugins/cache/... — must NOT write inside
+    # .claude/plugins/, and instead fall back to ~/.rare-kaon-ops-demo/heartland-demo
+    cache_plugin = fake_home / ".claude" / "plugins" / "cache" / "rare-kaon-ops-demo"
+    with zipfile.ZipFile(zip_path, "r") as zf:
+        zf.extractall(cache_plugin)
+
+    # Remove the stub marker so real init runs cleanly into stale_home_ws
+    shutil.rmtree(stale_home_ws)
+    run_cli_c = cache_plugin / "skills" / "ops-copilot" / "scripts" / "run_cli.py"
+    proc_c = subprocess.run(
+        [system_python, "-S", str(run_cli_c), "overview", "--json"],
+        cwd=str(cache_plugin),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert proc_c.returncode == 0, f"Scenario 3 failed:\n{proc_c.stdout}\n{proc_c.stderr}"
+    ov_c = json.loads(proc_c.stdout)
+    assert Path(ov_c["data"]["workspace_dir"]).resolve() == stale_home_ws.resolve()
+    assert not (cache_plugin.parent / "heartland-demo").exists()

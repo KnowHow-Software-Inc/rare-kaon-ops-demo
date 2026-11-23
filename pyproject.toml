@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "rare-kaon-ops-demo"
-version = "0.1.0"
+version = "0.1.1"
 description = "Self-contained Portfolio Finance & Ops Co-Pilot demonstration plugin by Rare Kaon."
 readme = "README.md"
 license = {text = "MIT"}

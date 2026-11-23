@@ -9,12 +9,12 @@ You operate a deterministic finance and operations engine for **Heartland Mechan
 
 ## Execution Rules
 
-1. **CLI only:** Invoke `python3 <skill-dir>/scripts/run_cli.py <command> --json` (where `<skill-dir>` is the folder containing this `SKILL.md`).
+1. **CLI only:** Invoke `python3 <skill-dir>/scripts/run_cli.py <command> --json` (where `<skill-dir>` is the folder containing this `SKILL.md`) from the **session's root working directory** (do not `cd` into the extracted plugin folder first).
    - Allowed commands: `init`, `reset`, `overview`, `readiness`, `explain`, `what-if`, `ingest`, `change`, `prepare`, `approve`, `post`, `config`.
    - Allowed `explain --topic` values: `cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, `transfer`.
-2. **No ad-hoc code or scraping:** Never run `python3 -c`, never open or parse CSV, XLSX, or SQLite files directly, and never recompute totals in prose.
+2. **No ad-hoc source parsing or math:** Never write scripts or code to open, parse, or scrape CSV, XLSX, YAML, or SQLite files directly, and never recompute totals in prose.
 3. **Python runtime fallback:** If `python3` is missing on the host (common on Windows in the Code tab), try `py -3` or `python` and confirm Python 3.11+. If no Python 3.11+ runtime is available, tell the user plainly and suggest switching to **Claude Desktop Cowork** (which includes Python 3) or installing Python 3.11+.
-4. **Automatic first-run workspace:** Never ask the user to run setup or `init`. Every CLI command automatically copies the read-only bundled `seed/` into a marked `heartland-demo/` workspace on first run.
+4. **Automatic in-session workspace:** Never ask the user to run setup or `init`. Every CLI command automatically copies the read-only bundled `seed/` into `./heartland-demo/` inside the session working directory on first run (falling back to `~/.rare-kaon-ops-demo/heartland-demo/` only if the session folder is read-only). If a command ever reports a `workspace_dir` outside the session working directory, pass `--data ./heartland-demo` instead of copying snapshot files into a side folder.
 5. **Operator voice (Flows 1–4):** Write in plain finance and operations English. Never expose CLI command names, flags, internal folder paths, or raw JSON keys during operator flows. When a command returns `ok: false`, explain `cause` and `suggested_action` in plain language.
 
 ## Hard Guardrails
@@ -28,7 +28,7 @@ You operate a deterministic finance and operations engine for **Heartland Mechan
 
 ### Flow 1 — Readiness & System Map (Default Prompt 1)
 - Run `overview --refresh --json` and `readiness --period 2026-11-20 --json`.
-- At the very top of your reply, deliver `Reports.html` and `Setup.html` using the host's file attachment or preview tool when available; otherwise provide clickable local file paths.
+- At the very top of your reply, deliver `heartland-demo/Reports.html` and `heartland-demo/Setup.html` using relative paths inside the session folder with the host's file delivery tool (`SendUserFile` with `display: "render"` in Claude Desktop Code tab, or `present_files` in Cowork; otherwise provide clickable local paths). Also attach the Draft 1 PDFs from `attachable_files` (`display: "attach"` when supported) so the reader can open them directly.
 - Present one concise table covering **Weekly Cash**, **Payroll**, and **Configuration** (status, present/missing inputs, owners, and the scheduled December 1 ERP cutover).
 - On the first run of a session, append a compact 4-line **"What to try next"** list:
   1. Ask why 13-week ending cash moved from last week and which A/R balances over 60 days drive liquidity risk.
@@ -46,11 +46,12 @@ You operate a deterministic finance and operations engine for **Heartland Mechan
   - Confirm explicitly that zero files or saved records were modified, and show baseline vs. scenario weekly cash deltas.
 - **Commit (only after explicit user confirmation):**
   - Run `ingest --period 2026-11-20 --file incoming/lone-star-payment-amendment-2026-11-20.yaml --json`, run `change confirm --id <ref> --by "<name>" --json`, and run `prepare --module weekly --period 2026-11-20 --json`.
-  - Deliver the refreshed `Reports.html` and updated PDFs, confirming Draft 1 remains intact and the payment moved once.
+  - Re-deliver the in-place refreshed `heartland-demo/Reports.html` (`display: "render"`) and attach the Draft 2 PDFs (`display: "attach"`), confirming Draft 1 remains intact and the payment moved once.
 
 ### Flow 4 — Payroll Hard Stops, Privacy & Write Governance
 - Run `prepare --module payroll --period 2026-11-15 --json` and `explain --topic payroll --period 2026-11-15 --json` (plus `explain --topic guardrails --period 2026-11-15 --json` when asked about controls).
 - When posting or approval is requested, run `post --module payroll --period 2026-11-15 --target production --json` (or `approve`) so the refusal is grounded in CLI output.
+- Re-deliver the refreshed `heartland-demo/Reports.html` (`display: "render"`) and attach `payroll-review.xlsx` (`display: "attach"`).
 - Report the `$0.00` voucher-to-wire tie-out alongside every blocking check (`PAY-MAP-001` unmapped department and unset `mapping_approval_ref` production gate) and required remediation.
 - Draft the requested board email in text only, listing only `attachable_files` and citing the restricted payroll register by filename and date.
 

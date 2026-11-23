@@ -11,12 +11,12 @@ No setup script or separate data download is needed. On your first prompt, the p
 Paste this into any agent with shell access (zero `pip install` or manual unzipping):
 
 ```text
-Install and run the Rare Kaon Ops Demo (v0.1.0): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.0/rare-kaon-ops-demo-v0.1.0.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver Reports.html and Setup.html.
+Install and run the Rare Kaon Ops Demo (v0.1.1): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.1/rare-kaon-ops-demo-v0.1.1.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/; stay in the session root folder rather than cd'ing into the plugin folder), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver heartland-demo/Reports.html and heartland-demo/Setup.html.
 ```
 
 ## 60-Second Upload (Claude Desktop — Cowork, Recommended for Non-Technical Evaluators)
 
-1. Download **`rare-kaon-ops-demo-v0.1.0.zip`** from https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest.
+1. Download **`rare-kaon-ops-demo-v0.1.1.zip`** from https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest.
 2. Open **Claude Desktop** → **Customize** → **Plugins** → **Upload plugin**, and select the ZIP (or drag-and-drop it into a Cowork chat).
 3. Open a new **Cowork** session (Python 3 is preinstalled inside Cowork). Selecting a local folder is optional—choose a folder if you want to inspect the raw CSV, XLSX, YAML, PDF, and HTML files directly in Finder or Explorer.
 4. Paste **Prompt 1** below.

@@ -765,18 +765,21 @@ def _render_model_card(model: ReportModel, workspace_dir: Path) -> str:
             f"<tbody>{''.join(b_rows)}</tbody></table>"
         )
 
-    # Artifacts (relative links to PDFs / Excel workbooks)
+    # Artifacts (relative links to executive PDFs / Excel workbooks; omit internal report-model.json)
     if model.artifacts:
         links = []
         for art_key, art_path in model.artifacts.items():
+            if art_key == "report_model":
+                continue
             href = _to_relative_href(art_path, workspace_dir)
             label = _pretty_label(art_key)
             fname = Path(href).name
             links.append(
                 f'<a class="artifact-link" href="{_esc(href)}">{_esc(label)} <span class="mono">({_esc(fname)})</span></a>'
             )
-        parts.append('<h3 class="section-heading">Generated Artifacts</h3>')
-        parts.append(f'<div class="artifact-list">{"".join(links)}</div>')
+        if links:
+            parts.append('<h3 class="section-heading">Generated Artifacts</h3>')
+            parts.append(f'<div class="artifact-list">{"".join(links)}</div>')
 
     # Control Checks — strictly separated Blocking vs. Open Review
     parts.append('<h3 class="section-heading">Control Checks &amp; Approval Gate</h3>')

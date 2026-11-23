@@ -258,16 +258,108 @@ def _is_inside_packaged_plugin(cwd: Path) -> bool:
     return False
 
 
+def _is_plugin_cache_dir(path: Path) -> bool:
+    """Return True if `path` sits inside a harness plugin install/cache tree."""
+    lower_parts = {part.lower() for part in path.parts}
+    if ".claude" in lower_parts and "plugins" in lower_parts:
+        return True
+    if "plugins" in lower_parts and ("claude" in lower_parts or "cache" in lower_parts):
+        return True
+    return False
+
+
+def _cowork_session_root(path: Path) -> Path | None:
+    """Return `/sessions/<id>` when running inside a sandboxed Cowork session tree."""
+    parts = path.parts
+    if len(parts) >= 3 and parts[0] == "/" and parts[1] == "sessions":
+        return Path("/") / "sessions" / parts[2]
+    return None
+
+
+def _choose_cowork_workspace_candidate(cwd: Path, pkg_root: Path) -> Path | None:
+    """Resolve an in-session workspace path when `cwd` is read-only inside a Cowork VM."""
+    session_root = _cowork_session_root(cwd) or _cowork_session_root(pkg_root)
+    if session_root is None or not session_root.is_dir():
+        return None
+
+    mnt_dir = session_root / "mnt"
+    candidate_bases: list[Path] = []
+    if mnt_dir.is_dir():
+        try:
+            entries = sorted(mnt_dir.iterdir(), key=lambda p: p.name.lower())
+        except OSError:
+            entries = []
+        # Prefer mounted user folders first, then `outputs`
+        user_mounts = [
+            p
+            for p in entries
+            if p.is_dir()
+            and not p.name.startswith(".")
+            and p.name not in {"outputs", "uploads"}
+            and not _is_plugin_cache_dir(p)
+            and _is_writable_dir(p)
+        ]
+        candidate_bases.extend(user_mounts)
+        outputs_dir = mnt_dir / "outputs"
+        if outputs_dir.is_dir() and _is_writable_dir(outputs_dir):
+            candidate_bases.append(outputs_dir)
+
+    if _is_writable_dir(session_root):
+        candidate_bases.append(session_root)
+
+    for base in candidate_bases:
+        ws = base / WORKSPACE_DIR_NAME
+        if is_marked_workspace(ws):
+            return ws
+    if candidate_bases:
+        return candidate_bases[0] / WORKSPACE_DIR_NAME
+    return None
+
+
 def _choose_default_workspace_path() -> Path:
     cwd = Path.cwd().resolve()
+    pkg_res = PACKAGE_ROOT.resolve()
 
-    # 1. Reuse existing marked workspace in CWD, ./heartland-demo, or ~/.rare-kaon-ops-demo/heartland-demo
+    # 1. Reuse existing marked workspace in CWD or ./heartland-demo
     if is_marked_workspace(cwd):
         return cwd
     cwd_candidate = cwd / WORKSPACE_DIR_NAME
     if is_marked_workspace(cwd_candidate):
         return cwd_candidate
 
+    # 2. Prefer materializing ./heartland-demo directly inside any writable session/user CWD.
+    #    Never let a pre-existing ~/.rare-kaon-ops-demo/heartland-demo hijack a fresh session folder.
+    if (
+        cwd != Path("/")
+        and _is_writable_dir(cwd)
+        and not _is_inside_packaged_plugin(cwd)
+        and not _is_plugin_cache_dir(cwd)
+    ):
+        return cwd_candidate
+
+    # 3. If CWD is inside an unpacked plugin folder (e.g., `./rare-kaon-ops-demo-plugin/`),
+    #    materialize `heartland-demo/` as a sibling in the writable parent session directory.
+    if _is_inside_packaged_plugin(cwd):
+        pkg_parent = pkg_res.parent
+        if is_marked_workspace(pkg_parent):
+            return pkg_parent
+        sibling_candidate = pkg_parent / WORKSPACE_DIR_NAME
+        if is_marked_workspace(sibling_candidate):
+            return sibling_candidate
+        if (
+            pkg_parent != Path("/")
+            and _is_writable_dir(pkg_parent)
+            and not _is_plugin_cache_dir(pkg_parent)
+        ):
+            return sibling_candidate
+
+    # 4. In sandboxed Cowork VMs where CWD is read-only or inside a plugin mount, keep
+    #    the workspace inside the active `/sessions/<id>/...` mount tree.
+    cowork_candidate = _choose_cowork_workspace_candidate(cwd, pkg_res)
+    if cowork_candidate is not None:
+        return cowork_candidate
+
+    # 5. Last resort (read-only CWD outside a writable session directory): home or temp fallback
     home_candidate = Path.home() / FALLBACK_HOME_SUBDIR / WORKSPACE_DIR_NAME
     if is_marked_workspace(home_candidate):
         return home_candidate
@@ -276,11 +368,6 @@ def _choose_default_workspace_path() -> Path:
     if is_marked_workspace(tmp_candidate):
         return tmp_candidate
 
-    # 2. Materialize new workspace: prefer ./heartland-demo if CWD is a writable user directory
-    if cwd != Path("/") and _is_writable_dir(cwd) and not _is_inside_packaged_plugin(cwd):
-        return cwd_candidate
-
-    # 3. Fallback to ~/.rare-kaon-ops-demo/heartland-demo or session temp fallback
     home_parent = home_candidate.parent
     try:
         home_parent.mkdir(parents=True, exist_ok=True)

@@ -197,4 +197,46 @@ def test_session_workspace_not_hijacked_by_preexisting_home_or_plugin_cwd(tmp_pa
     assert proc_c.returncode == 0, f"Scenario 3 failed:\n{proc_c.stdout}\n{proc_c.stderr}"
     ov_c = json.loads(proc_c.stdout)
     assert Path(ov_c["data"]["workspace_dir"]).resolve() == stale_home_ws.resolve()
+    assert ov_c.get("workspace_outside_session") is True
     assert not (cache_plugin.parent / "heartland-demo").exists()
+
+    # Scenario 4: Running from inside heartland-demo/runs/ reuses enclosing heartland-demo/
+    runs_subdir = session_a / "heartland-demo" / "runs"
+    assert runs_subdir.is_dir()
+    proc_d = subprocess.run(
+        [system_python, "-S", str(run_cli_a), "overview", "--json"],
+        cwd=str(runs_subdir),
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert proc_d.returncode == 0, f"Scenario 4 failed:\n{proc_d.stdout}\n{proc_d.stderr}"
+    ov_d = json.loads(proc_d.stdout)
+    assert Path(ov_d["data"]["workspace_dir"]).resolve() == (session_a / "heartland-demo").resolve()
+    assert not (runs_subdir / "heartland-demo").exists()
+
+
+def test_plugin_cache_detection_and_cowork_mount_preference(tmp_path: Path, monkeypatch) -> None:
+    """Verify M4 (Cowork mount routing ahead of writable /sessions/<id>) and M6 (consecutive .claude/plugins)."""
+    import engine.workspace as ws_mod
+
+    # M6: Unrelated ~/Claude/Plugins/demo must NOT be treated as a plugin cache dir
+    assert ws_mod._is_plugin_cache_dir(Path("/tmp/Claude/Plugins/demo")) is False
+    assert ws_mod._is_plugin_cache_dir(Path("/tmp/.claude/plugins/cache/rare-kaon-ops-demo")) is True
+
+    # M4: Even when /sessions/<id> is writable, Cowork routes into mnt/<user-folder> then mnt/outputs
+    fake_session = tmp_path / "sessions" / "sess-abc"
+    mnt_user = fake_session / "mnt" / "heartland-eval"
+    mnt_outputs = fake_session / "mnt" / "outputs"
+    mnt_user.mkdir(parents=True)
+    mnt_outputs.mkdir(parents=True)
+
+    monkeypatch.setattr(ws_mod, "_cowork_session_root", lambda _p: fake_session)
+    monkeypatch.chdir(fake_session)
+    chosen_user = ws_mod._choose_default_workspace_path()
+    assert chosen_user.resolve() == (mnt_user / "heartland-demo").resolve()
+
+    # Without a user mount folder, Cowork routes into mnt/outputs/heartland-demo
+    shutil.rmtree(mnt_user)
+    chosen_outputs = ws_mod._choose_default_workspace_path()
+    assert chosen_outputs.resolve() == (mnt_outputs / "heartland-demo").resolve()

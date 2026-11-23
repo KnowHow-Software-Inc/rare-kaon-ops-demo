@@ -15,7 +15,7 @@ This plugin demonstrates a third architecture: a **deterministic Python engine**
                                    │ JSON stdin/stdout
 ┌──────────────────────────────────▼───────────────────────────────────┐
 │ 2. Deterministic Engine & CLI (engine/ via run_cli.py)               │
-│    12 structured commands returning uniform JSON envelopes.          │
+│    13 structured commands returning uniform JSON envelopes.          │
 │    Exact integer-cent / Decimal arithmetic and SQLite run state.     │
 └──────────────┬───────────────────────────────────────┬───────────────┘
                │ reads & validates                     │ writes one file
@@ -25,7 +25,8 @@ This plugin demonstrates a third architecture: a **deterministic Python engine**
 │    config/assumptions.yaml      │     │       ├── pdf.py   (PDFs)    │
 │    config/outputs.yaml          │     │       ├── html.py  (HTML)    │
 │    config/payroll-mappings.yaml │     │       ├── xlsx.py  (Excel)   │
-│    config/config-audit.jsonl    │     │       └── explain  (JSON)    │
+│    config/config-audit.jsonl    │     │       ├── brief.py (Brief)   │
+│                                 │     │       └── explain  (JSON)    │
 └─────────────────────────────────┘     └──────────────────────────────┘
 ```
 
@@ -44,7 +45,7 @@ When an operator updates a setting through `config set`, the engine validates th
 
 All parsing, reconciliation, forecasting, and control evaluation execute in pure Python (`engine/`), invoked through `skills/ops-copilot/scripts/run_cli.py`. Monetary calculations use integer cents or `Decimal` rather than binary floating point, preventing penny rounding drift across bank tie-outs and journal lines.
 
-The engine exposes twelve commands—`init`, `reset`, `overview`, `readiness`, `explain`, `what-if`, `ingest`, `change`, `prepare`, `approve`, `post`, and `config`—each returning a uniform JSON envelope (`ok_envelope` or `error_envelope` in `engine/contracts.py`). The `explain` command serves six grounded evidence topics (`cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, and `transfer`) directly from saved run models and configuration rather than asking the language model to re-read source spreadsheets.
+The engine exposes thirteen commands—`init`, `reset`, `overview`, `readiness`, `explain`, `what-if`, `ingest`, `change`, `prepare`, `approve`, `post`, `config`, and `brief`—each returning a uniform JSON envelope (`ok_envelope` or `error_envelope` in `engine/contracts.py`). The `explain` command serves six grounded evidence topics (`cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, and `transfer`) directly from saved run models and configuration rather than asking the language model to re-read source spreadsheets.
 
 Runtime dependencies are restricted to Python 3.11+ standard library modules and pure-Python packages pinned in `packaging/plugin-requirements.txt` (`PyYAML`, `openpyxl`, `et_xmlfile`, `reportlab`, `charset-normalizer`). Because no compiled C extensions are required, one vendored plugin ZIP executes on macOS and Windows without virtual environments or external network calls.
 
@@ -64,6 +65,7 @@ Every renderer reads `report-model.json` without recomputing business totals:
 - **`engine/render/pdf.py`** produces the Weekly Liquidity Update PDF and the landscape 13-Week Cash Flow PDF via ReportLab.
 - **`engine/render/html.py`** renders self-contained `Reports.html` and `Setup.html` dashboards with zero external JavaScript or CDN dependencies.
 - **`engine/render/xlsx.py`** produces `payroll-review.xlsx` (`Runs`, `Tie-Out`, `Checks`, `Exceptions`, and `Draft Journal`—watermarked when blocking checks remain open).
+- **`engine/render/brief.py`** renders the 2-page Rare Kaon executive Session Brief (`Session-Brief.html` and `Session-Brief.pdf`) directly from verified run models and logged session events.
 - **`explain` CLI queries** serve the exact same KPI values, variance drivers, and citations into the chat window.
 
 Because no downstream surface recalculates totals, the numbers in chat, the HTML hub, the board PDFs, and the Excel workpaper match to the cent.

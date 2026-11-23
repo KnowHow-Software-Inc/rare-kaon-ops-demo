@@ -11,12 +11,12 @@ Rare Kaon publishes this architecture in working code rather than hiding it behi
 Paste this single prompt into your agent (requires Python 3.11+; zero `pip install` or `git clone` needed):
 
 ```text
-Install and run the Rare Kaon Ops Demo (v0.1.2): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.2/rare-kaon-ops-demo-v0.1.2.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/; stay in the session root folder rather than cd'ing into the plugin folder), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver heartland-demo/Reports.html and heartland-demo/Setup.html.
+Install and run the Rare Kaon Ops Demo (v0.1.3): download and extract https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/download/v0.1.3/rare-kaon-ops-demo-v0.1.3.zip into ./rare-kaon-ops-demo-plugin (all pure-Python dependencies are already bundled in vendor/; stay in the session root folder rather than cd'ing into the plugin folder), read ./rare-kaon-ops-demo-plugin/skills/ops-copilot/SKILL.md, and immediately run Flow 1: check if Heartland Mechanical is ready to run this week's finance pack, show what systems feed it and what is still open, and deliver heartland-demo/Reports.html and heartland-demo/Setup.html.
 ```
 
 ### 60-Second Upload — Claude Desktop (Cowork, Recommended for Non-Technical Evaluators)
 
-1. Download **`rare-kaon-ops-demo-v0.1.2.zip`** from [Releases](https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest).
+1. Download **`rare-kaon-ops-demo-v0.1.3.zip`** from [Releases](https://github.com/KnowHow-Software-Inc/rare-kaon-ops-demo/releases/latest).
 2. Open **Claude Desktop** → **Customize** → **Plugins** → **Upload plugin**, and select the ZIP (or drag-and-drop the ZIP into a Cowork chat).
 3. Open a new **Cowork** session (Python 3 is preinstalled inside Cowork; selecting a local folder is optional—pick one if you want to inspect the generated CSV, XLSX, YAML, PDF, and HTML files directly).
 4. Paste Prompt 1:
@@ -47,7 +47,7 @@ Launch `claude` or `codex` in the repository root and paste Prompt 1. Both harne
 | **2. Source-Traced Interrogation** | 13-week cash bridge and overdue A/R (`>60` days) | Queries `variance_bridge` and A/R aging index from `report-model.json`. | Every figure traces to source filenames, as-of dates, and invoice numbers; non-blocking open reviews stay separate from blockers. |
 | **3. Stateless What-If & Revision** | Defer `$25,000` Lone Star payment (Week 1 → Week 2), then apply amendment | Clones SQLite into `:memory:` for zero-write preview; commits via `ingest` + `change confirm` + `prepare`. | Exploration writes zero bytes; committed revisions log to `config-audit.jsonl`, preserve Draft 1, and move cash once. |
 | **4. Payroll Hard Stops & Privacy** | Prepare payroll journal for ERP posting and draft board email | Reconciles voucher to funding wire (`$0.00` variance), then blocks on unmapped branch code `TUL-INSTALL-NEW` (`PAY-MAP-001`) and unset `mapping_approval_ref`. | Code enforces hard stops and privacy walls (`attachable: false` on restricted payroll registers) independent of LLM wording. |
-| **5. Transfer & Portability** | Adapt to non-finance workflows and Microsoft 365 Copilot | Inspects live `config/*.yaml` and bundled `docs/*.md`. | Shows what stays invariant across portfolio companies, how M365 Copilot wraps the same engine, and how a bounded pilot is measured. |
+| **5. Transfer, Portability & Executive Brief** | Adapt to non-finance workflows, M365 Copilot, and generate a 2-page executive Session Brief | Inspects live `config/*.yaml` and bundled `docs/*.md`; renders `Session-Brief.html` and `Session-Brief.pdf` directly from verified run state. | Shows what stays invariant across portfolio companies, how M365 Copilot wraps the same engine, and produces a grounded 2-page leave-behind brief. |
 
 ## Architecture Overview
 
@@ -58,7 +58,7 @@ Agent Harness (Claude Desktop/Cowork, Claude Code, Codex, or M365 Copilot via MC
 skills/ops-copilot/SKILL.md            (thin operating spec; zero math or file parsing)
         │
         ▼
-skills/ops-copilot/scripts/run_cli.py  (12 structured JSON commands + uniform error envelopes)
+skills/ops-copilot/scripts/run_cli.py  (13 structured JSON commands + uniform error envelopes)
         │
         ├── config/*.yaml              (declarative feeds, column aliases, assumptions, outputs)
         ├── heartland-demo/            (SQLite state, immutable draft folders, audit log)
@@ -66,7 +66,8 @@ skills/ops-copilot/scripts/run_cli.py  (12 structured JSON commands + uniform er
                 │
                 ├── engine/render/pdf.py   → Weekly Liquidity Update & 13-Week Cash Flow PDFs
                 ├── engine/render/html.py  → Reports.html & Setup.html (zero external CDN deps)
-                └── engine/render/xlsx.py  → Payroll Pre-Posting Review Workbook
+                ├── engine/render/xlsx.py  → Payroll Pre-Posting Review Workbook
+                └── engine/render/brief.py → 2-page Executive Session Brief (HTML & PDF)
 ```
 
 ### Key Architectural Invariants
@@ -89,7 +90,7 @@ rare-kaon-ops-demo/
 │   ├── model.py                       # Frozen canonical ReportModel dataclasses
 │   ├── contracts.py                   # Frozen CLI commands, topics, paths, KPI keys
 │   ├── cli.py                         # Structured JSON CLI
-│   └── render/                        # pdf.py, html.py, xlsx.py
+│   └── render/                        # pdf.py, html.py, xlsx.py, brief.py
 ├── seed/                              # Read-only synthetic Heartland Mechanical dataset
 ├── quickstart/
 │   └── 5-prompts-in-5-minutes.md      # 1-page buyer walkthrough card
@@ -100,9 +101,9 @@ rare-kaon-ops-demo/
 
 ## CLI Commands & Verification
 
-All twelve CLI commands return uniform JSON envelopes (`ok_envelope` / `error_envelope`):
+All thirteen CLI commands return uniform JSON envelopes (`ok_envelope` / `error_envelope`):
 
-`init` · `reset` · `overview` · `readiness` · `explain` (`cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, `transfer`) · `what-if` · `ingest` · `change` · `prepare` · `approve` · `post` · `config`
+`init` · `reset` · `overview` · `readiness` · `explain` (`cash_bridge`, `ar_over_60`, `payroll`, `guardrails`, `architecture`, `transfer`) · `what-if` · `ingest` · `change` · `prepare` · `approve` · `post` · `config` · `brief`
 
 Run the automated test suite:
 

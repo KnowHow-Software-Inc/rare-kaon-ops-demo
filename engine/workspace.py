@@ -37,6 +37,7 @@ from engine.model import PendingChange, ReportModel
 PACKAGE_ROOT = Path(__file__).resolve().parent.parent
 SEED_DIR = PACKAGE_ROOT / "seed"
 DB_FILENAME = "workspace.db"
+SESSION_EVENTS_FILENAME = "session-events.jsonl"
 
 
 # ---------------------------------------------------------------------------
@@ -259,12 +260,16 @@ def _is_inside_packaged_plugin(cwd: Path) -> bool:
 
 
 def _is_plugin_cache_dir(path: Path) -> bool:
-    """Return True if `path` sits inside a harness plugin install/cache tree."""
-    lower_parts = {part.lower() for part in path.parts}
-    if ".claude" in lower_parts and "plugins" in lower_parts:
-        return True
-    if "plugins" in lower_parts and ("claude" in lower_parts or "cache" in lower_parts):
-        return True
+    """Return True if `path` sits inside a real harness plugin cache/install tree.
+
+    Matches consecutive `.claude/plugins` segments (e.g. `.claude/plugins/cache/...`
+    or `.claude/plugins/marketplaces/...`) rather than arbitrary user folders named
+    `Claude/Plugins/...`.
+    """
+    parts = [part.lower() for part in path.parts]
+    for idx in range(len(parts) - 1):
+        if parts[idx] == ".claude" and parts[idx + 1] == "plugins":
+            return True
     return False
 
 
@@ -277,7 +282,11 @@ def _cowork_session_root(path: Path) -> Path | None:
 
 
 def _choose_cowork_workspace_candidate(cwd: Path, pkg_root: Path) -> Path | None:
-    """Resolve an in-session workspace path when `cwd` is read-only inside a Cowork VM."""
+    """Resolve an in-session workspace path inside a Cowork VM (`/sessions/<id>/...`).
+
+    Prefers a user-mounted folder under `/sessions/<id>/mnt/<folder>/heartland-demo`,
+    then `/sessions/<id>/mnt/outputs/heartland-demo`, then `/sessions/<id>/heartland-demo`.
+    """
     session_root = _cowork_session_root(cwd) or _cowork_session_root(pkg_root)
     if session_root is None or not session_root.is_dir():
         return None
@@ -316,18 +325,34 @@ def _choose_cowork_workspace_candidate(cwd: Path, pkg_root: Path) -> Path | None
     return None
 
 
+def _find_marked_ancestor(cwd: Path) -> Path | None:
+    """Walk `cwd` and its parents to find an enclosing marked workspace (prevents nesting)."""
+    for candidate in (cwd, *cwd.parents):
+        if is_marked_workspace(candidate):
+            return candidate
+    return None
+
+
 def _choose_default_workspace_path() -> Path:
     cwd = Path.cwd().resolve()
     pkg_res = PACKAGE_ROOT.resolve()
 
-    # 1. Reuse existing marked workspace in CWD or ./heartland-demo
-    if is_marked_workspace(cwd):
-        return cwd
+    # 1. Reuse existing marked workspace at CWD, any parent of CWD, or ./heartland-demo
+    enclosing = _find_marked_ancestor(cwd)
+    if enclosing is not None:
+        return enclosing
     cwd_candidate = cwd / WORKSPACE_DIR_NAME
     if is_marked_workspace(cwd_candidate):
         return cwd_candidate
 
-    # 2. Prefer materializing ./heartland-demo directly inside any writable session/user CWD.
+    # 2. In Cowork VMs (`/sessions/<id>/...`), prefer the mounted user folder or `mnt/outputs`
+    #    even when `/sessions/<id>` itself is writable.
+    if _cowork_session_root(cwd) is not None or _cowork_session_root(pkg_res) is not None:
+        cowork_candidate = _choose_cowork_workspace_candidate(cwd, pkg_res)
+        if cowork_candidate is not None:
+            return cowork_candidate
+
+    # 3. Prefer materializing ./heartland-demo directly inside any writable session/user CWD.
     #    Never let a pre-existing ~/.rare-kaon-ops-demo/heartland-demo hijack a fresh session folder.
     if (
         cwd != Path("/")
@@ -337,12 +362,13 @@ def _choose_default_workspace_path() -> Path:
     ):
         return cwd_candidate
 
-    # 3. If CWD is inside an unpacked plugin folder (e.g., `./rare-kaon-ops-demo-plugin/`),
+    # 4. If CWD is inside an unpacked plugin folder (e.g., `./rare-kaon-ops-demo-plugin/`),
     #    materialize `heartland-demo/` as a sibling in the writable parent session directory.
     if _is_inside_packaged_plugin(cwd):
         pkg_parent = pkg_res.parent
-        if is_marked_workspace(pkg_parent):
-            return pkg_parent
+        enclosing_parent = _find_marked_ancestor(pkg_parent)
+        if enclosing_parent is not None:
+            return enclosing_parent
         sibling_candidate = pkg_parent / WORKSPACE_DIR_NAME
         if is_marked_workspace(sibling_candidate):
             return sibling_candidate
@@ -352,12 +378,6 @@ def _choose_default_workspace_path() -> Path:
             and not _is_plugin_cache_dir(pkg_parent)
         ):
             return sibling_candidate
-
-    # 4. In sandboxed Cowork VMs where CWD is read-only or inside a plugin mount, keep
-    #    the workspace inside the active `/sessions/<id>/...` mount tree.
-    cowork_candidate = _choose_cowork_workspace_candidate(cwd, pkg_res)
-    if cowork_candidate is not None:
-        return cowork_candidate
 
     # 5. Last resort (read-only CWD outside a writable session directory): home or temp fallback
     home_candidate = Path.home() / FALLBACK_HOME_SUBDIR / WORKSPACE_DIR_NAME
@@ -699,6 +719,63 @@ def collect_active_models(workspace_dir: Path) -> list[ReportModel]:
         return models
     finally:
         conn.close()
+
+
+def append_session_event(
+    workspace_dir: Path,
+    *,
+    command: str,
+    ok: bool,
+    error_code: str | None = None,
+    topic: str | None = None,
+    module: str | None = None,
+    period: str | None = None,
+    target: str | None = None,
+    change_id: str | None = None,
+) -> dict[str, Any]:
+    """Append one compact, zero-PII command event line to `<workspace_dir>/session-events.jsonl`."""
+    workspace_dir = Path(workspace_dir)
+    entry: dict[str, Any] = {
+        "timestamp": utc_now_iso(),
+        "command": command,
+        "ok": bool(ok),
+    }
+    if error_code:
+        entry["error_code"] = str(error_code)
+    for k, v in (
+        ("topic", topic),
+        ("module", module),
+        ("period", period),
+        ("target", target),
+        ("change_id", change_id),
+    ):
+        if v is not None and str(v).strip():
+            entry[k] = str(v)
+
+    if is_marked_workspace(workspace_dir):
+        log_path = workspace_dir / SESSION_EVENTS_FILENAME
+        with log_path.open("a", encoding="utf-8", newline="\n") as fh:
+            fh.write(json.dumps(entry, ensure_ascii=False) + "\n")
+    return entry
+
+
+def read_session_events(workspace_dir: Path) -> list[dict[str, Any]]:
+    """Read all recorded engine events from `<workspace_dir>/session-events.jsonl`."""
+    log_path = Path(workspace_dir) / SESSION_EVENTS_FILENAME
+    if not log_path.is_file():
+        return []
+    events: list[dict[str, Any]] = []
+    for raw in log_path.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line:
+            continue
+        try:
+            parsed = json.loads(line)
+            if isinstance(parsed, dict):
+                events.append(parsed)
+        except json.JSONDecodeError:
+            continue
+    return events
 
 
 def refresh_html_views(workspace_dir: Path) -> tuple[Path, Path]:

@@ -30,7 +30,6 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from engine import __version__  # noqa: E402
 from engine.contracts import (  # noqa: E402
     COMPANY_NAME,
     DEFAULT_PAYROLL_PERIOD,
@@ -48,6 +47,7 @@ from engine.model import (  # noqa: E402
 )
 
 FIXED_SEED = 20261120
+HISTORICAL_SEED_VERSION = "0.1.0"
 FIXED_XLSX_DT = dt.datetime(2026, 11, 18, 22, 40, 0)
 FIXED_ZIP_DT = (2026, 11, 18, 22, 40, 0)
 
@@ -1656,7 +1656,7 @@ def build_prior_issued_weekly_model(bank_data: dict[str, Any]) -> ReportModel:
             module="weekly",
             period=PRIOR_WEEKLY_PERIOD,
             period_label="Week ended 13 November 2026",
-            version=__version__,
+            version=HISTORICAL_SEED_VERSION,
             draft_number=1,
             status="approved",
             created_at="2026-11-13T16:15:00Z",

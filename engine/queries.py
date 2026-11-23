@@ -75,11 +75,9 @@ def build_privacy_file_lists(
             }
         )
 
-    # Hub HTML dashboards and generated executive session briefs (if present)
+    # Hub HTML dashboards (Session Brief leave-behind is returned exclusively by `brief`)
     _add_attachable("Reports.html", "dashboard", "internal")
     _add_attachable("Setup.html", "dashboard", "internal")
-    _add_attachable("Session-Brief.html", "session_brief_html", "board")
-    _add_attachable("Session-Brief.pdf", "session_brief_pdf", "board")
 
     # Model artifacts and attachable sources
     for model in models:
@@ -617,7 +615,7 @@ def query_explain(
             "company_name": config["company_name"],
             "layers": [
                 "1. Agent Harness + Thin Operating Spec (skills/ops-copilot/SKILL.md) — natural language orchestration only, zero math or file scraping.",
-                "2. Deterministic Engine & Structured CLI (engine/ via run_cli.py) — 12 commands, exact integer-cent Decimal math, SQLite state, uniform JSON envelopes.",
+                "2. Deterministic Engine & Structured CLI (engine/ via run_cli.py) — 13 commands, exact integer-cent Decimal math, SQLite state, uniform JSON envelopes.",
                 "3. Declarative YAML Configuration (config/feeds.yaml, assumptions.yaml, outputs.yaml, payroll-mappings.yaml + config-audit.jsonl).",
                 "4. Single Canonical ReportModel (report-model.json) — drives ReportLab PDFs, self-contained HTML hubs, openpyxl XLSX workbooks, and CLI explain responses with zero KPI drift.",
             ],

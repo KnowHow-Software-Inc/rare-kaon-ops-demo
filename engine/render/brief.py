@@ -3,7 +3,8 @@
 Produces:
 - `<workspace_dir>/Session-Brief.html`: self-contained Arial-on-white executive brief
   with official Rare Kaon geometric mark, balanced green/red/teal semantic accents,
-  and exact 2-page US Letter print geometry (or 3 pages when `include_log=True`).
+  responsive narrow-pane screen layout, and exact 2-page US Letter print geometry
+  (or 3 pages when `include_log=True`).
 - `<workspace_dir>/Session-Brief.pdf`: matching pure-Python ReportLab vector/text PDF
   requiring zero Pillow, zero browser binaries, and zero external network calls.
 """
@@ -33,7 +34,7 @@ def _ensure_reportlab_pillow_free() -> None:
 _ensure_reportlab_pillow_free()
 
 from reportlab.lib import colors
-from reportlab.lib.enums import TA_LEFT, TA_RIGHT
+from reportlab.lib.enums import TA_RIGHT
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import ParagraphStyle
 from reportlab.pdfbase import pdfmetrics
@@ -49,6 +50,11 @@ pdfmetrics.registerFontFamily(
 )
 
 TWO_PLACES = Decimal("0.01")
+ZERO = Decimal("0.00")
+
+_MAX_LOG_RUNS = 8
+_MAX_LOG_EVENTS = 10
+_MAX_LOG_AUDIT = 8
 
 
 # ---------------------------------------------------------------------------
@@ -56,28 +62,33 @@ TWO_PLACES = Decimal("0.01")
 # ---------------------------------------------------------------------------
 
 
-def _fmt_usd(value: float | int | str | Decimal | None, *, signed: bool = False) -> str:
+def _to_dec(value: float | int | str | Decimal | None) -> Decimal | None:
     if value is None or isinstance(value, bool):
-        return "—"
+        return None
+    if isinstance(value, Decimal):
+        return value
     try:
-        dec = value if isinstance(value, Decimal) else Decimal(str(value))
+        return Decimal(str(value))
     except (InvalidOperation, ValueError):
-        return str(value)
+        return None
+
+
+def _fmt_usd(value: float | int | str | Decimal | None, *, signed: bool = False) -> str:
+    dec = _to_dec(value)
+    if dec is None:
+        return "—"
     q = dec.quantize(TWO_PLACES, rounding=ROUND_HALF_UP)
-    if q < 0:
+    if q < ZERO:
         return f"-${abs(q):,.2f}"
-    if signed and q > 0:
+    if signed and q > ZERO:
         return f"+${q:,.2f}"
     return f"${q:,.2f}"
 
 
 def _fmt_usd_whole(value: float | int | str | Decimal | None) -> str:
-    if value is None or isinstance(value, bool):
+    dec = _to_dec(value)
+    if dec is None:
         return "—"
-    try:
-        dec = value if isinstance(value, Decimal) else Decimal(str(value))
-    except (InvalidOperation, ValueError):
-        return str(value)
     q = dec.quantize(Decimal("1"), rounding=ROUND_HALF_UP)
     return f"${int(q):,}"
 
@@ -101,158 +112,285 @@ def _join_workflow_list(items: list[str]) -> str:
     return ", ".join(cleaned[:-1]) + f", or {cleaned[-1]}"
 
 
-def _harness_sentence_parts(target_harness: str) -> tuple[str, str, str]:
-    """Return ordered harness emphasis for Point 04 (plain text, HTML, ReportLab XML)."""
+def _harness_sentence_parts(target_harness: str) -> tuple[str, str]:
+    """Return accurate harness portability copy (HTML, ReportLab XML), separating current vs. Azure extension."""
     h = (target_harness or "").strip().lower()
     if "copilot" in h or "microsoft" in h or "m365" in h or "azure" in h:
-        txt = (
-            "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs inside your Azure tenant behind Microsoft 365 Copilot, or locally in Claude or OpenAI Codex."
-        )
         htm = (
             "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs inside your Azure tenant behind <strong>Microsoft 365 Copilot</strong>, "
-            "or locally in <strong>Claude</strong> or <strong>OpenAI Codex</strong>."
+            "the same engine can be wrapped in a thin Azure adapter to run behind <strong>Microsoft 365 Copilot</strong>, "
+            "and runs locally today in <strong>Claude</strong> or <strong>OpenAI Codex</strong>."
         )
         rl = (
             "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs inside your Azure tenant behind <b>Microsoft 365 Copilot</b>, "
-            "or locally in <b>Claude</b> or <b>OpenAI Codex</b>."
+            "the same engine can be wrapped in a thin Azure adapter to run behind <b>Microsoft 365 Copilot</b>, "
+            "and runs locally today in <b>Claude</b> or <b>OpenAI Codex</b>."
         )
-        return txt, htm, rl
+        return htm, rl
     if "codex" in h or "openai" in h:
-        txt = (
-            "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs locally in OpenAI Codex or Claude, or inside your Azure tenant behind Microsoft 365 Copilot."
-        )
         htm = (
             "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs locally in <strong>OpenAI Codex</strong> or <strong>Claude</strong>, "
-            "or inside your Azure tenant behind <strong>Microsoft 365 Copilot</strong>."
+            "the same engine runs locally today in <strong>OpenAI Codex</strong> or <strong>Claude</strong>, "
+            "and can be wrapped in a thin Azure adapter to run behind <strong>Microsoft 365 Copilot</strong>."
         )
         rl = (
             "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-            "the same engine runs locally in <b>OpenAI Codex</b> or <b>Claude</b>, "
-            "or inside your Azure tenant behind <b>Microsoft 365 Copilot</b>."
+            "the same engine runs locally today in <b>OpenAI Codex</b> or <b>Claude</b>, "
+            "and can be wrapped in a thin Azure adapter to run behind <b>Microsoft 365 Copilot</b>."
         )
-        return txt, htm, rl
+        return htm, rl
 
-    txt = (
-        "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-        "the same engine runs locally in Claude or OpenAI Codex, or inside your Azure tenant behind Microsoft 365 Copilot."
-    )
     htm = (
         "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-        "the same engine runs locally in <strong>Claude</strong> or <strong>OpenAI Codex</strong>, "
-        "or inside your Azure tenant behind <strong>Microsoft 365 Copilot</strong>."
+        "the same engine runs locally today in <strong>Claude</strong> or <strong>OpenAI Codex</strong>, "
+        "and can be wrapped in a thin Azure adapter to run behind <strong>Microsoft 365 Copilot</strong>."
     )
     rl = (
         "The business owns the code and rules outright, with zero lock-in to a single model vendor: "
-        "the same engine runs locally in <b>Claude</b> or <b>OpenAI Codex</b>, "
-        "or inside your Azure tenant behind <b>Microsoft 365 Copilot</b>."
+        "the same engine runs locally today in <b>Claude</b> or <b>OpenAI Codex</b>, "
+        "and can be wrapped in a thin Azure adapter to run behind <b>Microsoft 365 Copilot</b>."
     )
-    return txt, htm, rl
+    return htm, rl
 
 
 def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
-    """Build synchronized prose strings shared by both HTML and PDF renderers."""
+    """Build strictly evidence-grounded prose shared by both HTML and PDF renderers."""
     m1 = brief_data["moment1"]
     m2 = brief_data["moment2"]
     m3 = brief_data["moment3"]
     spec = brief_data["spec"]
 
-    delta_abs = _fmt_usd(abs(m1["bridge_delta"]))
-    ar60_whole = _fmt_usd_whole(m1["ar_over_60"])
-    m1_lead_dir = "beat" if m1["bridge_delta"] >= 0 else "trailed"
+    # ------------------------------------------------------------------
+    # Page 1 Lead: assemble only from engine-verified / engine-logged facts
+    # ------------------------------------------------------------------
+    done_clauses = ["built this week’s leadership pack"]
+    if m1["asked_cash_bridge"] or m1["asked_ar_over_60"]:
+        done_clauses.append("traced variances directly to underlying transactions")
+    if m2["mode"] == "revised":
+        done_clauses.append("committed a confirmed payment revision")
+    elif m2["mode"] == "declined":
+        done_clauses.append("recorded a declined amendment while keeping the baseline intact")
+    elif m2["mode"] == "previewed":
+        done_clauses.append("previewed a payment deferral in memory")
+    if m3["post_refused"] or m3["approve_refused"]:
+        done_clauses.append("blocked an unapproved payroll posting")
+    elif m3["payroll_prepared"]:
+        done_clauses.append("prepared payroll with blocking controls active")
+    else:
+        done_clauses.append("checked payroll controls and privacy boundaries")
+
+    if len(done_clauses) == 2:
+        done_phrase = f"{done_clauses[0]} and {done_clauses[1]}"
+    else:
+        done_phrase = ", ".join(done_clauses[:-1]) + f", and {done_clauses[-1]}"
 
     p1_lead = (
         "Heartland did not replace its bank, its spreadsheets, or the newly acquired Tulsa branch’s "
-        "QuickBooks file. Running those existing exports through one lightweight workflow built this "
-        "week’s leadership pack, answered follow-up questions directly from the transactions, handled "
-        "a live payment change, and held an unapproved payroll posting—in minutes."
-        if m2["mode"] == "revised"
-        else (
-            "Heartland did not replace its bank, its spreadsheets, or the newly acquired Tulsa branch’s "
-            "QuickBooks file. Running those existing exports through one lightweight workflow built this "
-            "week’s leadership pack, traced variances directly to underlying transactions, staged a live "
-            "payment review, and enforced payroll posting controls—in minutes."
-        )
+        f"QuickBooks file. Running those existing exports through one lightweight workflow {done_phrase}."
     )
+    if spec.get("user_focus"):
+        uf = str(spec["user_focus"]).strip().rstrip(".")
+        if uf:
+            p1_lead += f" Session focus: {uf}."
 
-    m1_html = (
-        f"When asked why opening cash {m1_lead_dir} last week’s plan by <strong>{_esc(delta_abs)}</strong>, "
-        f"the system traced the gap to three exact transactions across Frost Banking and biweekly payroll—"
-        f"while flagging {_esc(ar60_whole)} in A/R past 60 days by invoice. Because chat answers, the web "
-        f"dashboard, and the PDFs all pull from one verified calculation, leadership can interrogate the "
-        f"pack live without creating a second version of the truth."
-    )
-    m1_rl = (
-        f"When asked why opening cash {m1_lead_dir} last week’s plan by <b>{_xesc(delta_abs)}</b>, "
-        f"the system traced the gap to three exact transactions across Frost Banking and biweekly payroll—"
-        f"while flagging {_xesc(ar60_whole)} in A/R past 60 days by invoice. Because chat answers, the web "
-        f"dashboard, and the PDFs all pull from one verified calculation, leadership can interrogate the "
-        f"pack live without creating a second version of the truth."
-    )
+    # ------------------------------------------------------------------
+    # Moment 1: Past tense if explain ran; capability tense otherwise
+    # ------------------------------------------------------------------
+    delta_dec = _to_dec(m1["bridge_delta"]) or ZERO
+    delta_abs = _fmt_usd(abs(delta_dec))
+    ar60_whole = _fmt_usd_whole(m1["ar_over_60"])
+    m1_dir = "beat" if delta_dec >= ZERO else "trailed"
+    drv_n = int(m1["driver_count"])
+    drv_word = f"{drv_n} transaction{'s' if drv_n != 1 else ''}"
 
-    amt_str = _fmt_usd(m2["amount"])
-    if m2["mode"] == "revised":
-        m2_html = (
-            f"Previewing a one-week deferral of {_esc(m2['vendor'])}’s <strong>{_esc(amt_str)}</strong> "
-            f"invoice wrote nothing to disk. Once the operator confirmed, the system recorded the approval, "
-            f"left {_esc(m2['baseline_label'])} intact for comparison, and regenerated the dashboard and PDFs "
-            f"as {_esc(m2['latest_label'])} with the payment moved once. People keep judgment and sign-off; "
-            f"software handles the rebuild."
+    if m1["asked_cash_bridge"] or m1["asked_ar_over_60"]:
+        m1_html = (
+            f"When asked why opening cash {m1_dir} last week’s plan by <strong>{_esc(delta_abs)}</strong>, "
+            f"the system traced the gap to {drv_word} across Frost Commercial Banking and biweekly payroll—"
+            f"and surfaced {_esc(ar60_whole)} in A/R past 60 days by invoice. Because chat answers, the web "
+            f"dashboard, and the PDFs read one verified calculation, leadership can interrogate the pack live "
+            f"without creating a second version of the truth."
         )
-        m2_rl = (
-            f"Previewing a one-week deferral of {_xesc(m2['vendor'])}’s <b>{_xesc(amt_str)}</b> "
-            f"invoice wrote nothing to disk. Once the operator confirmed, the system recorded the approval, "
-            f"left {_xesc(m2['baseline_label'])} intact for comparison, and regenerated the dashboard and PDFs "
-            f"as {_xesc(m2['latest_label'])} with the payment moved once. People keep judgment and sign-off; "
-            f"software handles the rebuild."
+        m1_rl = (
+            f"When asked why opening cash {m1_dir} last week’s plan by <b>{_xesc(delta_abs)}</b>, "
+            f"the system traced the gap to {drv_word} across Frost Commercial Banking and biweekly payroll—"
+            f"and surfaced {_xesc(ar60_whole)} in A/R past 60 days by invoice. Because chat answers, the web "
+            f"dashboard, and the PDFs read one verified calculation, leadership can interrogate the pack live "
+            f"without creating a second version of the truth."
         )
-        m2_box_title = f"{m2['vendor'].split()[0]} {m2['vendor'].split()[1]} Deferral (Before & After)" if len(m2["vendor"].split()) >= 2 else "Payment Deferral (Before & After)"
     else:
+        m1_html = (
+            f"Opening cash {m1_dir} last week’s plan by <strong>{_esc(delta_abs)}</strong>, reconciled across "
+            f"{drv_word} in Frost Commercial Banking and biweekly payroll, alongside {_esc(ar60_whole)} in A/R "
+            f"past 60 days. Because chat queries, the web dashboard, and the PDFs read one verified model, "
+            f"any follow-up question traces back to the exact same figures and source files."
+        )
+        m1_rl = (
+            f"Opening cash {m1_dir} last week’s plan by <b>{_xesc(delta_abs)}</b>, reconciled across "
+            f"{drv_word} in Frost Commercial Banking and biweekly payroll, alongside {_xesc(ar60_whole)} in A/R "
+            f"past 60 days. Because chat queries, the web dashboard, and the PDFs read one verified model, "
+            f"any follow-up question traces back to the exact same figures and source files."
+        )
+
+    # ------------------------------------------------------------------
+    # Moment 2: Reflects actual live amendment state (revised / previewed / pending / declined / staged / baseline)
+    # ------------------------------------------------------------------
+    vendor = m2.get("vendor") or ""
+    amt_str = _fmt_usd(m2.get("amount")) if m2.get("amount") is not None else ""
+    old_wk = m2.get("old_week")
+    new_wk = m2.get("new_week")
+
+    if m2["mode"] == "revised":
+        v_parts = vendor.split()
+        m2_box_title = f"{v_parts[0]} {v_parts[1]} Deferral (Before & After)" if len(v_parts) >= 2 else "Confirmed Revision (Before & After)"
+        item_desc = f"{vendor}’s " if vendor else "the "
+        wk_desc = f" from Week {old_wk} to Week {new_wk}" if old_wk and new_wk else ""
         m2_html = (
-            f"Before saving any change, an operator can preview moving {_esc(m2['vendor'])}’s "
-            f"<strong>{_esc(amt_str)}</strong> payment from Week {m2['old_week']} to Week {m2['new_week']} "
-            f"in memory with zero files modified. Once confirmed, the system logs the decision, preserves "
-            f"{_esc(m2['baseline_label'])} untouched, and issues a new numbered draft with the payment moved once."
+            f"After confirming { _esc(item_desc)}<strong>{_esc(amt_str)}</strong> payment shift{_esc(wk_desc)}, "
+            f"the system logged the approval to the audit trail, kept {_esc(m2['baseline_label'])} intact for "
+            f"comparison, and regenerated the dashboard and PDFs as {_esc(m2['latest_label'])} with the payment "
+            f"moved once. People keep judgment and sign-off; software handles the rebuild."
         )
         m2_rl = (
-            f"Before saving any change, an operator can preview moving {_xesc(m2['vendor'])}’s "
-            f"<b>{_xesc(amt_str)}</b> payment from Week {m2['old_week']} to Week {m2['new_week']} "
-            f"in memory with zero files modified. Once confirmed, the system logs the decision, preserves "
-            f"{_xesc(m2['baseline_label'])} untouched, and issues a new numbered draft with the payment moved once."
+            f"After confirming {_xesc(item_desc)}<b>{_xesc(amt_str)}</b> payment shift{_xesc(wk_desc)}, "
+            f"the system logged the approval to the audit trail, kept {_xesc(m2['baseline_label'])} intact for "
+            f"comparison, and regenerated the dashboard and PDFs as {_xesc(m2['latest_label'])} with the payment "
+            f"moved once. People keep judgment and sign-off; software handles the rebuild."
         )
-        m2_box_title = "Baseline Forecast & Staged Revision"
+    elif m2["mode"] == "previewed":
+        m2_box_title = "Stateless What-If Preview (In Memory)"
+        item_desc = f"{vendor}’s " if vendor else "the "
+        wk_desc = f" from Week {old_wk} to Week {new_wk}" if old_wk and new_wk else ""
+        m2_html = (
+            f"Previewing { _esc(item_desc)}<strong>{_esc(amt_str)}</strong> payment deferral{_esc(wk_desc)} ran "
+            f"against an in-memory copy and modified zero workspace files. Saved drafts and reports stay "
+            f"untouched until an operator explicitly confirms a change."
+        )
+        m2_rl = (
+            f"Previewing {_xesc(item_desc)}<b>{_xesc(amt_str)}</b> payment deferral{_xesc(wk_desc)} ran "
+            f"against an in-memory copy and modified zero workspace files. Saved drafts and reports stay "
+            f"untouched until an operator explicitly confirms a change."
+        )
+    elif m2["mode"] == "declined":
+        m2_box_title = "Baseline Forecast (Amendment Declined)"
+        item_desc = f"{vendor}’s " if vendor else "the proposed "
+        m2_html = (
+            f"An operator declined {_esc(item_desc)}<strong>{_esc(amt_str)}</strong> payment amendment. "
+            f"The system recorded the decline in the audit log and preserved {_esc(m2['baseline_label'])} "
+            f"unchanged—showing that incoming requests never alter the forecast without human approval."
+        )
+        m2_rl = (
+            f"An operator declined {_xesc(item_desc)}<b>{_xesc(amt_str)}</b> payment amendment. "
+            f"The system recorded the decline in the audit log and preserved {_xesc(m2['baseline_label'])} "
+            f"unchanged—showing that incoming requests never alter the forecast without human approval."
+        )
+    elif m2["mode"] == "pending":
+        m2_box_title = "Baseline Forecast (Confirmation Pending)"
+        item_desc = f"{vendor}’s " if vendor else "an incoming "
+        m2_html = (
+            f"The system ingested {_esc(item_desc)}<strong>{_esc(amt_str)}</strong> payment amendment and held "
+            f"it in pending status. Approval remains blocked until an operator confirms or declines the change, "
+            f"keeping {_esc(m2['baseline_label'])} intact in the meantime."
+        )
+        m2_rl = (
+            f"The system ingested {_xesc(item_desc)}<b>{_xesc(amt_str)}</b> payment amendment and held "
+            f"it in pending status. Approval remains blocked until an operator confirms or declines the change, "
+            f"keeping {_xesc(m2['baseline_label'])} intact in the meantime."
+        )
+    elif m2["mode"] == "staged" and vendor and amt_str:
+        m2_box_title = "Baseline Forecast & Staged Amendment"
+        wk_desc = f" from Week {old_wk} to Week {new_wk}" if old_wk and new_wk else ""
+        m2_html = (
+            f"A staged amendment from {_esc(vendor)} (<strong>{_esc(amt_str)}</strong>{_esc(wk_desc)}) sits "
+            f"unapplied in the workspace. Operators can preview its cash impact in memory with zero disk writes "
+            f"and commit only after confirmation, preserving {_esc(m2['baseline_label'])} untouched."
+        )
+        m2_rl = (
+            f"A staged amendment from {_xesc(vendor)} (<b>{_xesc(amt_str)}</b>{_xesc(wk_desc)}) sits "
+            f"unapplied in the workspace. Operators can preview its cash impact in memory with zero disk writes "
+            f"and commit only after confirmation, preserving {_xesc(m2['baseline_label'])} untouched."
+        )
+    else:
+        m2_box_title = "Baseline 13-Week Liquidity Position"
+        m2_html = (
+            f"Forecast changes never overwrite prior work silently. Operators can test timing scenarios in "
+            f"memory with zero disk writes, log confirmed decisions to the audit trail, and generate numbered "
+            f"drafts while preserving {_esc(m2['baseline_label'])} intact."
+        )
+        m2_rl = (
+            f"Forecast changes never overwrite prior work silently. Operators can test timing scenarios in "
+            f"memory with zero disk writes, log confirmed decisions to the audit trail, and generate numbered "
+            f"drafts while preserving {_xesc(m2['baseline_label'])} intact."
+        )
 
+    # ------------------------------------------------------------------
+    # Moment 3: Strictly driven by live blocking checks, mapping_approval_ref, and logged post refusals
+    # ------------------------------------------------------------------
     wire_str = _fmt_usd(m3["funding_wire_total"])
-    var_str = _fmt_usd(m3["tieout_variance"])
+    var_dec = _to_dec(m3["tieout_variance"]) or ZERO
+    var_str = _fmt_usd(var_dec)
+    has_block = int(m3["blocking_count"]) > 0
+    has_ref = bool(m3.get("mapping_approval_ref"))
+    blocked_dept = m3.get("blocked_dept") or ""
+
+    reason_bits: list[str] = []
+    if has_block:
+        if blocked_dept:
+            reason_bits.append(f"one employee record carried unmapped department {blocked_dept}")
+        else:
+            reason_bits.append(f"{m3['blocking_count']} blocking check{'s' if m3['blocking_count'] != 1 else ''} remained open")
+    if not has_ref:
+        reason_bits.append("no written Controller sign-off reference was recorded")
+    reason_clause = " and ".join(reason_bits)
+
+    if m3["post_refused"] or m3["approve_refused"]:
+        m3_heading = "Accounting holds and privacy walls held even when the math balanced"
+        m3_action = f"The system refused ERP posting because {reason_clause}." if reason_clause else "The system refused ERP posting under its active governance gate."
+    elif has_block or not has_ref:
+        m3_heading = "Accounting holds and privacy walls enforce sign-off even when math ties"
+        m3_action = f"Approval and ERP posting remain blocked because {reason_clause}."
+    else:
+        m3_heading = "Payroll reconciliation and governance checks cleared with privacy enforced"
+        m3_action = f"All department mappings cleared and Controller approval reference {m3['mapping_approval_ref']} is on file."
+
+    privacy_clause = (
+        "In code, the employee pay register is excluded from outbound attachments and cited by filename and date only."
+    )
+
     m3_html = (
         f"Heartland’s payroll register tied to the <strong>{_esc(wire_str)}</strong> funding wire to the "
-        f"cent ({_esc(var_str)} variance). The system still refused ERP posting because one newly transferred "
-        f"Tulsa technician carried an unmapped department code and no written Controller sign-off was recorded. "
-        f"When drafting the board email, it excluded the employee pay register automatically and cited it by "
-        f"filename and date only."
+        f"cent ({_esc(var_str)} variance). {_esc(m3_action)} {_esc(privacy_clause)}"
     )
     m3_rl = (
         f"Heartland’s payroll register tied to the <b>{_xesc(wire_str)}</b> funding wire to the "
-        f"cent ({_xesc(var_str)} variance). The system still refused ERP posting because one newly transferred "
-        f"Tulsa technician carried an unmapped department code and no written Controller sign-off was recorded. "
-        f"When drafting the board email, it excluded the employee pay register automatically and cited it by "
-        f"filename and date only."
+        f"cent ({_xesc(var_str)} variance). {_xesc(m3_action)} {_xesc(privacy_clause)}"
     )
 
+    # Accurate blocking status badge (never assumes every blocker is an unmapped dept)
+    blocking_ids = m3.get("blocking_ids") or []
+    if has_block:
+        ids_str = ", ".join(blocking_ids[:2]) if blocking_ids else f"{m3['blocking_count']} check"
+        hold_val = f"Held ({ids_str})"
+        hold_tone = "stop"
+    elif not has_ref:
+        hold_val = "Held (approval ref unset)"
+        hold_tone = "stop"
+    else:
+        hold_val = "Clear for posting"
+        hold_tone = "ok"
+
+    # ------------------------------------------------------------------
+    # Page 2: Crisp, grounded business impact + accurate M365 extension copy
+    # ------------------------------------------------------------------
     p2_target = spec["target_company"]
     p2_lead = spec["lead_override"] or (
-        "Solving one recurring bottleneck this way delivers useful work from the first cycle—and leaves "
-        "the business with an owned operational layer that traditional enterprise software promised for "
-        "years and rarely delivered."
+        "Solving one recurring bottleneck this way delivers controlled operating output from the first cycle—"
+        "and builds an owned software layer across your existing tools without waiting on a multi-quarter ERP overhaul."
     )
 
     systems_phrase = spec["target_systems"]
     workflows_phrase = _join_workflow_list(spec["target_workflows"])
-    _, h_html, h_rl = _harness_sentence_parts(spec["target_harness"])
+    h_html, h_rl = _harness_sentence_parts(spec["target_harness"])
 
     c1_text = (
         f"Consolidating numbers, enforcing approvals, and integrating bolt-on acquisitions used to require "
@@ -284,7 +422,7 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
     start_workflow = spec["target_workflow"] if spec["target_workflow_is_custom"] else "one high-friction workflow"
     start_owner = spec["target_owner"]
     start_html = (
-        f"Pick {'' if spec['target_workflow_is_custom'] else ''}<strong>{_esc(start_workflow)}</strong> at "
+        f"Pick <strong>{_esc(start_workflow)}</strong> at "
         f"<strong>{_esc(start_target)}</strong> with {_esc(start_owner)} and 2–3 prior cycles of real exports. "
         f"We configure the rules, replay historical cycles until outputs tie out to the cent, and run two live "
         f"cycles in parallel with your existing process—measuring hands-on time, turnaround from complete inputs, "
@@ -302,6 +440,8 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
         "Identify the first workflow and its owner to review two recent export cycles and scope a bounded parallel run."
     )
 
+    rollup_right = "Full log on page 3" if brief_data.get("include_log") else "Full log available on request"
+
     return {
         "p1_lead": p1_lead,
         "m1_html": m1_html,
@@ -309,8 +449,12 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
         "m2_html": m2_html,
         "m2_rl": m2_rl,
         "m2_box_title": m2_box_title,
+        "m3_heading": m3_heading,
         "m3_html": m3_html,
         "m3_rl": m3_rl,
+        "hold_val": hold_val,
+        "hold_tone": hold_tone,
+        "rollup_right": rollup_right,
         "p2_target": p2_target,
         "p2_lead": p2_lead,
         "c1_text": c1_text,
@@ -324,8 +468,20 @@ def _build_copy_blocks(brief_data: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def _describe_event(ev: dict[str, Any]) -> str:
+    """Format a compact, zero-PII summary of one `session-events.jsonl` line."""
+    bits = []
+    for k in ("topic", "module", "target", "change_id", "period"):
+        if ev.get(k):
+            bits.append(f"{k}={ev[k]}")
+    detail = ", ".join(bits) if bits else "—"
+    if ev.get("ok") is False and ev.get("error_code"):
+        return f"REFUSED ({ev['error_code']}) · {detail}"
+    return detail
+
+
 # ---------------------------------------------------------------------------
-# HTML Renderer (`Session-Brief.html`, exact v5 Rare Kaon Arial-on-white)
+# HTML Renderer (`Session-Brief.html`, responsive screen + exact 2-page print)
 # ---------------------------------------------------------------------------
 
 _RARE_KAON_MARK_SVG = """<svg width="26" height="26" viewBox="0 0 100 100" aria-hidden="true" focusable="false">
@@ -372,13 +528,15 @@ html, body {
 .sheet-stack {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: safe center;
   gap: 24px;
-  padding: 24px 12px 44px;
+  padding: 20px 12px 40px;
 }
 .sheet {
   width: 8.5in;
-  height: 11in;
+  max-width: 100%;
+  min-height: 11in;
+  margin: 0 auto;
   background: var(--paper);
   color: var(--ink);
   box-shadow: 0 12px 32px rgba(10, 21, 36, 0.14);
@@ -389,8 +547,10 @@ html, body {
 }
 .brand-row {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 8px;
   margin-bottom: 11px;
 }
 .brand-lockup {
@@ -589,9 +749,10 @@ html, body {
 .status-row strong { font-weight: 700; white-space: nowrap; }
 .session-rollup {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
-  gap: 12px;
+  gap: 8px 12px;
   padding: 7px 0 0;
   border-top: 1px solid var(--hair);
   font-size: 9.2px;
@@ -680,37 +841,68 @@ html, body {
 .log-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 9.4px;
+  font-size: 9.2px;
   margin-top: 4px;
 }
 .log-table th, .log-table td {
-  padding: 5px 6px;
+  padding: 4.5px 6px;
   border-bottom: 1px solid var(--hair);
   text-align: left;
   vertical-align: top;
 }
 .log-table th {
-  font-size: 8.4px;
+  font-size: 8.2px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--ink-muted);
   border-bottom: 1.5px solid var(--rule);
   background: var(--surface);
 }
+.log-more {
+  margin-top: 4px;
+  font-size: 8.6px;
+  color: var(--ink-muted);
+}
 .sheet-footer {
   margin-top: 10px;
   padding-top: 7px;
   border-top: 1px solid var(--hair);
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
+  gap: 6px;
   font-size: 8.8px;
   color: var(--ink-muted);
 }
+
+/* Responsive screen layout for narrow panes (e.g. Claude Desktop side panel) */
+@media screen and (max-width: 860px) {
+  .sheet-stack { padding: 12px 10px 24px; gap: 16px; }
+  .sheet {
+    width: 100%;
+    height: auto;
+    min-height: 0;
+    padding: 22px 20px 18px;
+  }
+}
+@media screen and (max-width: 680px) {
+  .moment { grid-template-columns: 1fr; gap: 12px; }
+  .meta-right { text-align: left; }
+}
+
 @page { size: letter portrait; margin: 0; }
 @media print {
   html, body { background: #ffffff; }
   .sheet-stack { padding: 0; gap: 0; }
-  .sheet { box-shadow: none; page-break-after: always; break-after: page; }
+  .sheet {
+    width: 8.5in;
+    height: 11in;
+    min-height: 11in;
+    box-shadow: none;
+    padding: 0.48in 0.64in 0.4in;
+    page-break-after: always;
+    break-after: page;
+  }
   .sheet:last-child { page-break-after: auto; break-after: auto; }
 }
 """
@@ -727,6 +919,7 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
     m2 = brief_data["moment2"]
     m3 = brief_data["moment3"]
     total_pages = 3 if brief_data.get("include_log") else 2
+    gen_stamp = brief_data.get("generated_stamp", "")
 
     # Moment 1 bridge rows
     m1_rows = [
@@ -734,10 +927,11 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
         f'<td class="num">{_esc(_fmt_usd(m1["prior_value"]))}</td></tr>'
     ]
     for drv in m1["drivers"]:
-        cls = "pos" if drv["amount"] >= 0 else "neg"
+        amt_d = _to_dec(drv["amount"]) or ZERO
+        cls = "pos" if amt_d >= ZERO else "neg"
         m1_rows.append(
             f"<tr><td>{_esc(drv['label'])}</td>"
-            f'<td class="num {cls}">{_esc(_fmt_usd(drv["amount"], signed=True))}</td></tr>'
+            f'<td class="num {cls}">{_esc(_fmt_usd(amt_d, signed=True))}</td></tr>'
         )
     m1_rows.append(
         f"<tr><td>Actual opening cash ({_esc(m1['current_date_label'].split(',')[0])})</td>"
@@ -747,15 +941,18 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
     # Moment 2 compare rows
     m2_rows = []
     for r in m2["rows"]:
-        if m2["mode"] == "revised":
-            after_cls = "pos" if r["changed"] and (r["after"] or 0) > r["before"] else ""
+        if m2["mode"] in {"revised", "previewed"}:
+            b_d = _to_dec(r["before"]) or ZERO
+            a_d = _to_dec(r["after"]) or ZERO
+            after_cls = "pos" if r.get("changed") and a_d > b_d else ("neg" if r.get("changed") and a_d < b_d else "")
             m2_rows.append(
                 f"<tr><td>{_esc(r['label'])}</td>"
-                f'<td class="num">{_esc(_fmt_usd(r["before"]))}</td>'
-                f'<td class="num {after_cls}">{_esc(_fmt_usd(r["after"]))}</td></tr>'
+                f'<td class="num">{_esc(_fmt_usd(b_d))}</td>'
+                f'<td class="num {after_cls}">{_esc(_fmt_usd(a_d))}</td></tr>'
             )
         else:
-            st_cls = "pos" if r["changed"] else ""
+            tone = r.get("tone", "neutral")
+            st_cls = "pos" if tone == "pos" else ("neg" if tone == "neg" else "")
             m2_rows.append(
                 f"<tr><td>{_esc(r['label'])}</td>"
                 f'<td class="num">{_esc(_fmt_usd(r["before"]))}</td>'
@@ -763,38 +960,54 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
             )
 
     # Moment 3 status rows
-    tieout_cls = "ok" if abs(m3["tieout_variance"]) < 0.005 else "stop"
-    hold_cls = "stop" if m3["blocking_count"] > 0 else "ok"
-    hold_val = (
-        f"Held ({m3['blocking_count']} unmapped dept)"
-        if m3["blocking_count"] > 0
-        else "Clear for approval"
-    )
+    var_dec = _to_dec(m3["tieout_variance"]) or ZERO
+    tieout_cls = "ok" if var_dec == ZERO else "stop"
     pay_date_short = m3["pay_date_label"].split(",")[0]
 
-    # Page 3 appendix (only when include_log=True)
+    # Page 3 appendix (newest-first, capped symmetrically with PDF + overflow note)
     page3_html = ""
     if brief_data.get("include_log"):
-        run_trs = []
-        for r in brief_data.get("runs") or []:
-            run_trs.append(
-                f"<tr><td>{_esc(str(r['module']).title())}</td>"
-                f"<td>{_esc(r['period'])}</td>"
-                f"<td>Draft {int(r['draft_number'])}</td>"
-                f"<td>{_esc(r['status'])}</td>"
-                f"<td>{int(r['blocking_count'])} blocking / {int(r['open_review_count'])} review</td>"
-                f"<td>{_esc(str(r['created_at'])[:19])}</td></tr>"
-            )
-        audit_trs = []
-        for a in brief_data.get("audit_entries") or []:
-            audit_trs.append(
-                f"<tr><td>{_esc(str(a.get('timestamp', ''))[:19])}</td>"
-                f"<td>{_esc(a.get('actor', '—'))}</td>"
-                f"<td>{_esc(a.get('field_path') or a.get('action') or '—')}</td>"
-                f"<td>{_esc(a.get('reason') or a.get('summary') or '—')}</td></tr>"
-            )
+        all_runs = brief_data.get("runs") or []
+        shown_runs = all_runs[:_MAX_LOG_RUNS]
+        extra_runs = max(0, len(all_runs) - len(shown_runs))
+        run_trs = [
+            f"<tr><td>{_esc(str(r['module']).title())}</td>"
+            f"<td>{_esc(r['period'])}</td>"
+            f"<td>Draft {int(r['draft_number'])}</td>"
+            f"<td>{_esc(r['status'])}</td>"
+            f"<td>{int(r['blocking_count'])} blocking / {int(r['open_review_count'])} review</td>"
+            f"<td>{_esc(str(r['created_at'])[:19])}</td></tr>"
+            for r in shown_runs
+        ]
+        runs_more = f'<div class="log-more">+{extra_runs} earlier run(s) not shown.</div>' if extra_runs else ""
+
+        all_events = brief_data.get("session_events") or []
+        shown_events = all_events[:_MAX_LOG_EVENTS]
+        extra_events = max(0, len(all_events) - len(shown_events))
+        event_trs = [
+            f"<tr><td>{_esc(str(e.get('timestamp', ''))[:19])}</td>"
+            f"<td>{_esc(e.get('command', ''))}</td>"
+            f'<td class="{"pos" if e.get("ok") else "neg"}">{"OK" if e.get("ok") else "BLOCKED"}</td>'
+            f"<td>{_esc(_describe_event(e))}</td></tr>"
+            for e in shown_events
+        ]
+        if not event_trs:
+            event_trs.append('<tr><td colspan="4" style="color:var(--ink-muted);">No CLI query or control events logged yet.</td></tr>')
+        events_more = f'<div class="log-more">+{extra_events} earlier event(s) not shown.</div>' if extra_events else ""
+
+        all_audit = brief_data.get("audit_entries") or []
+        shown_audit = all_audit[:_MAX_LOG_AUDIT]
+        extra_audit = max(0, len(all_audit) - len(shown_audit))
+        audit_trs = [
+            f"<tr><td>{_esc(str(a.get('timestamp', ''))[:19])}</td>"
+            f"<td>{_esc(a.get('actor', '—'))}</td>"
+            f"<td>{_esc(a.get('field_path') or a.get('action') or '—')}</td>"
+            f"<td>{_esc(a.get('reason') or a.get('summary') or '—')}</td></tr>"
+            for a in shown_audit
+        ]
         if not audit_trs:
             audit_trs.append('<tr><td colspan="4" style="color:var(--ink-muted);">No configuration or operator decisions recorded yet.</td></tr>')
+        audit_more = f'<div class="log-more">+{extra_audit} earlier audit entr{"y" if extra_audit == 1 else "ies"} not shown.</div>' if extra_audit else ""
 
         page3_html = f"""
 <article class="sheet">
@@ -808,31 +1021,41 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
       </div>
       <div class="meta-right">
         <strong>{_esc(brief_data['period_display'])}</strong>
-        Full run &amp; decision log
+        Generated {_esc(gen_stamp)}
       </div>
     </div>
     <div class="title-band">
-      <h1>Session Run History &amp; Audit Trail</h1>
+      <h1>Session Run History, Control Events &amp; Audit Trail</h1>
     </div>
   </header>
   <main class="main-col">
     <section>
-      <div class="t-label">Preserved Drafts &amp; Runs</div>
+      <div class="t-label">Preserved Drafts &amp; Runs (Newest First)</div>
       <table class="log-table">
         <thead><tr><th>Module</th><th>Period</th><th>Run</th><th>Status</th><th>Checks</th><th>Created (UTC)</th></tr></thead>
         <tbody>{"".join(run_trs)}</tbody>
       </table>
+      {runs_more}
     </section>
     <section>
-      <div class="t-label">Logged Operator &amp; Configuration Decisions</div>
+      <div class="t-label">Control &amp; Query Events (Newest First)</div>
+      <table class="log-table">
+        <thead><tr><th>Timestamp (UTC)</th><th>Command</th><th>Result</th><th>Details</th></tr></thead>
+        <tbody>{"".join(event_trs)}</tbody>
+      </table>
+      {events_more}
+    </section>
+    <section>
+      <div class="t-label">Logged Operator &amp; Configuration Decisions (Newest First)</div>
       <table class="log-table">
         <thead><tr><th>Timestamp (UTC)</th><th>Actor</th><th>Target / Action</th><th>Summary</th></tr></thead>
         <tbody>{"".join(audit_trs)}</tbody>
       </table>
+      {audit_more}
     </section>
   </main>
   <footer class="sheet-footer">
-    <span>Rare Kaon &middot; Appendix generated directly from workspace SQLite &amp; audit trail</span>
+    <span>Rare Kaon &middot; Appendix generated directly from workspace SQLite, session-events.jsonl &amp; audit trail</span>
     <span>Page 3 of {total_pages}</span>
   </footer>
 </article>
@@ -860,7 +1083,7 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
       </div>
       <div class="meta-right">
         <strong>{_esc(brief_data['period_display'])}</strong>
-        {_esc(brief_data['header_status'])}
+        {_esc(brief_data['header_status'])} &middot; {_esc(gen_stamp)}
       </div>
     </div>
     <div class="title-band">
@@ -905,7 +1128,7 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
     <section class="moment">
       <div>
         <div class="t-label">03 &middot; Controls Enforced in Software</div>
-        <h2>Accounting holds and privacy walls held even when the math balanced</h2>
+        <h2>{_esc(copy['m3_heading'])}</h2>
         <p>{copy['m3_html']}</p>
       </div>
       <div class="proof-box">
@@ -913,15 +1136,15 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
         <div class="status-stack">
           <div class="status-row {tieout_cls}">
             <span>Register-to-wire tie-out</span>
-            <strong>{_esc(_fmt_usd(m3['tieout_variance']))} variance</strong>
+            <strong>{_esc(_fmt_usd(var_dec))} variance</strong>
           </div>
-          <div class="status-row {hold_cls}">
+          <div class="status-row {copy['hold_tone']}">
             <span>ERP posting &amp; approval</span>
-            <strong>{_esc(hold_val)}</strong>
+            <strong>{_esc(copy['hold_val'])}</strong>
           </div>
           <div class="status-row">
             <span>Employee pay register</span>
-            <strong>Excluded from email</strong>
+            <strong>Withheld from attachments</strong>
           </div>
         </div>
         <div class="source-note">{_esc(m3['open_review_note'])}</div>
@@ -930,7 +1153,7 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
 
     <div class="session-rollup">
       <span><strong>Session activity:</strong> {_esc(brief_data['rollup_summary'])}</span>
-      <span>Full log available on request</span>
+      <span>{_esc(copy['rollup_right'])}</span>
     </div>
 
     <section class="bridge-band">
@@ -957,7 +1180,7 @@ def render_session_brief_html(brief_data: dict[str, Any], workspace_dir: Path) -
       </div>
       <div class="meta-right">
         <strong>Immediate operational return</strong>
-        Foundational long-term asset
+        Foundational long-term asset &middot; {_esc(gen_stamp)}
       </div>
     </div>
     <div class="title-band">
@@ -1090,7 +1313,6 @@ def _draw_masthead(
     content_w = page_w - 2 * margin_x
     top_y = page_h - 36.0
 
-    # Mark + wordmark lockup
     mark_size = 19.5
     _draw_rare_kaon_mark(c, margin_x, top_y - mark_size, size=mark_size)
 
@@ -1106,26 +1328,23 @@ def _draw_masthead(
     c.setFont("Helvetica-Bold", 7.8)
     c.drawString(sep_x + 9.0, baseline, doc_type.upper())
 
-    # Right metadata
-    c.setFont("Helvetica-Bold", 8.2)
+    c.setFont("Helvetica-Bold", 8.0)
     c.setFillColor(_C_INK)
     c.drawRightString(page_w - margin_x, top_y - 7.0, meta_top)
-    c.setFont("Helvetica", 7.8)
+    c.setFont("Helvetica", 7.4)
     c.setFillColor(_C_MUTED)
     c.drawRightString(page_w - margin_x, top_y - 17.5, meta_sub)
 
-    # Top 2pt ink rule
     rule_y = top_y - mark_size - 9.0
     c.setStrokeColor(_C_INK)
     c.setLineWidth(1.6)
     c.line(margin_x, rule_y, page_w - margin_x, rule_y)
 
-    # Title paragraph (supports inline teal accent span)
     title_style = ParagraphStyle(
         "BriefTitle",
         fontName="Helvetica-Bold",
-        fontSize=15.5,
-        leading=18.5,
+        fontSize=15.0,
+        leading=18.0,
         textColor=_C_INK,
     )
     p_title = Paragraph(title_rl, title_style)
@@ -1133,12 +1352,11 @@ def _draw_masthead(
     title_y = rule_y - 9.0 - th
     p_title.drawOn(c, margin_x, title_y)
 
-    # Hairline below title
-    hair_y = title_y - 9.0
+    hair_y = title_y - 8.5
     c.setStrokeColor(_C_HAIR)
     c.setLineWidth(0.75)
     c.line(margin_x, hair_y, page_w - margin_x, hair_y)
-    return hair_y - 12.0
+    return hair_y - 11.5
 
 
 def _draw_footer(
@@ -1181,43 +1399,40 @@ def _draw_p1_moment(
     right_w = content_w - left_w - gap
     right_x = x + left_w + gap
 
-    # Left column paragraphs
     st_kicker = ParagraphStyle("K", fontName="Helvetica-Bold", fontSize=7.2, leading=9.5, textColor=_C_TEAL)
-    st_h2 = ParagraphStyle("H2", fontName="Helvetica-Bold", fontSize=10.4, leading=13.2, textColor=_C_INK)
-    st_body = ParagraphStyle("B", fontName="Helvetica", fontSize=8.6, leading=12.8, textColor=_C_BODY)
+    st_h2 = ParagraphStyle("H2", fontName="Helvetica-Bold", fontSize=10.2, leading=13.0, textColor=_C_INK)
+    st_body = ParagraphStyle("B", fontName="Helvetica", fontSize=8.5, leading=12.6, textColor=_C_BODY)
 
     p_k = Paragraph(_xesc(kicker.upper()), st_kicker)
     p_h = Paragraph(_xesc(heading), st_h2)
     p_b = Paragraph(body_rl, st_body)
 
     _, kh = p_k.wrap(left_w, 30)
-    _, hh = p_h.wrap(left_w, 40)
+    _, hh = p_h.wrap(left_w, 42)
     _, bh = p_b.wrap(left_w, 160)
     left_h = kh + 3.0 + hh + 4.0 + bh
 
-    # Measure right proof box contents
     box_pad_x = 9.5
     box_pad_top = 8.0
     box_pad_bot = 8.0
     inner_w = right_w - 2 * box_pad_x
 
     st_box_title = ParagraphStyle("BT", fontName="Helvetica-Bold", fontSize=7.0, leading=9.0, textColor=_C_MUTED)
-    st_note = ParagraphStyle("SN", fontName="Helvetica", fontSize=7.2, leading=9.8, textColor=_C_MUTED)
+    st_note = ParagraphStyle("SN", fontName="Helvetica", fontSize=7.1, leading=9.6, textColor=_C_MUTED)
     p_bt = Paragraph(_xesc(box_title.upper()), st_box_title)
     p_sn = Paragraph(_xesc(source_note), st_note)
     _, bth = p_bt.wrap(inner_w, 20)
-    _, snh = p_sn.wrap(inner_w, 30)
+    _, snh = p_sn.wrap(inner_w, 36)
 
-    # Build inner table or status stack
     tbl_obj: Table | None = None
     status_items: list[tuple[str, str, str]] = []
     if box_kind == "ledger":
-        st_lbl = ParagraphStyle("TL", fontName="Helvetica", fontSize=8.0, leading=10.2, textColor=_C_BODY)
-        st_lbl_b = ParagraphStyle("TLB", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=_C_INK)
-        st_num = ParagraphStyle("TN", fontName="Helvetica", fontSize=8.0, leading=10.2, textColor=_C_BODY, alignment=TA_RIGHT)
-        st_num_b = ParagraphStyle("TNB", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=_C_INK, alignment=TA_RIGHT)
-        st_pos = ParagraphStyle("TP", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=_C_GREEN, alignment=TA_RIGHT)
-        st_neg = ParagraphStyle("TNG", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=_C_RED, alignment=TA_RIGHT)
+        st_lbl = ParagraphStyle("TL", fontName="Helvetica", fontSize=7.9, leading=10.0, textColor=_C_BODY)
+        st_lbl_b = ParagraphStyle("TLB", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_INK)
+        st_num = ParagraphStyle("TN", fontName="Helvetica", fontSize=7.9, leading=10.0, textColor=_C_BODY, alignment=TA_RIGHT)
+        st_num_b = ParagraphStyle("TNB", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_INK, alignment=TA_RIGHT)
+        st_pos = ParagraphStyle("TP", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_GREEN, alignment=TA_RIGHT)
+        st_neg = ParagraphStyle("TNG", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_RED, alignment=TA_RIGHT)
 
         rows_data = []
         for idx, (lbl, val_str, tone) in enumerate(box_payload):
@@ -1232,10 +1447,10 @@ def _draw_p1_moment(
                 [
                     ("LEFTPADDING", (0, 0), (-1, -1), 0),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3.0),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3.0),
+                    ("TOPPADDING", (0, 0), (-1, -1), 2.8),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 2.8),
                     ("LINEBELOW", (0, 0), (-1, -2), 0.5, _C_HAIR),
-                    ("TOPPADDING", (0, -1), (-1, -1), 4.5),
+                    ("TOPPADDING", (0, -1), (-1, -1), 4.2),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
                 ]
             )
@@ -1245,27 +1460,29 @@ def _draw_p1_moment(
         hdr_l, hdr_c1, hdr_c2, row_specs = box_payload
         st_th = ParagraphStyle("TH", fontName="Helvetica-Bold", fontSize=6.9, leading=9.0, textColor=_C_MUTED)
         st_thr = ParagraphStyle("THR", fontName="Helvetica-Bold", fontSize=6.9, leading=9.0, textColor=_C_MUTED, alignment=TA_RIGHT)
-        st_td = ParagraphStyle("TD", fontName="Helvetica", fontSize=8.0, leading=10.2, textColor=_C_BODY)
-        st_tdr = ParagraphStyle("TDR", fontName="Helvetica", fontSize=8.0, leading=10.2, textColor=_C_BODY, alignment=TA_RIGHT)
-        st_pos = ParagraphStyle("TDP", fontName="Helvetica-Bold", fontSize=8.0, leading=10.2, textColor=_C_GREEN, alignment=TA_RIGHT)
+        st_td = ParagraphStyle("TD", fontName="Helvetica", fontSize=7.9, leading=10.0, textColor=_C_BODY)
+        st_tdr = ParagraphStyle("TDR", fontName="Helvetica", fontSize=7.9, leading=10.0, textColor=_C_BODY, alignment=TA_RIGHT)
+        st_pos = ParagraphStyle("TDP", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_GREEN, alignment=TA_RIGHT)
+        st_neg = ParagraphStyle("TDN", fontName="Helvetica-Bold", fontSize=7.9, leading=10.0, textColor=_C_RED, alignment=TA_RIGHT)
 
         rows_data = [[Paragraph(_xesc(hdr_l.upper()), st_th), Paragraph(_xesc(hdr_c1.upper()), st_thr), Paragraph(_xesc(hdr_c2.upper()), st_thr)]]
-        for lbl, c1_s, c2_s, highlight in row_specs:
+        for lbl, c1_s, c2_s, tone in row_specs:
+            c2_style = st_pos if tone == "pos" else (st_neg if tone == "neg" else st_tdr)
             rows_data.append(
                 [
                     Paragraph(_xesc(lbl), st_td),
                     Paragraph(_xesc(c1_s), st_tdr),
-                    Paragraph(_xesc(c2_s), st_pos if highlight else st_tdr),
+                    Paragraph(_xesc(c2_s), c2_style),
                 ]
             )
-        tbl_obj = Table(rows_data, colWidths=[inner_w * 0.42, inner_w * 0.29, inner_w * 0.29])
+        tbl_obj = Table(rows_data, colWidths=[inner_w * 0.41, inner_w * 0.29, inner_w * 0.30])
         tbl_obj.setStyle(
             TableStyle(
                 [
                     ("LEFTPADDING", (0, 0), (-1, -1), 0),
                     ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-                    ("TOPPADDING", (0, 0), (-1, -1), 3.2),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3.2),
+                    ("TOPPADDING", (0, 0), (-1, -1), 3.0),
+                    ("BOTTOMPADDING", (0, 0), (-1, -1), 3.0),
                     ("LINEBELOW", (0, 0), (-1, 0), 0.9, _C_INK),
                     ("LINEBELOW", (0, 1), (-1, -2), 0.5, _C_HAIR),
                     ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
@@ -1275,11 +1492,10 @@ def _draw_p1_moment(
         _, mid_h = tbl_obj.wrap(inner_w, 200)
     else:
         status_items = list(box_payload)
-        mid_h = len(status_items) * 21.0 + max(0, len(status_items) - 1) * 4.5
+        mid_h = len(status_items) * 20.5 + max(0, len(status_items) - 1) * 4.5
 
     right_h = box_pad_top + bth + 5.0 + mid_h + 6.0 + snh + box_pad_bot
 
-    # Draw left column
     cur_ly = y_top - kh
     p_k.drawOn(c, x, cur_ly)
     cur_ly -= 3.0 + hh
@@ -1287,14 +1503,12 @@ def _draw_p1_moment(
     cur_ly -= 4.0 + bh
     p_b.drawOn(c, x, cur_ly)
 
-    # Draw right shaded proof box
     box_bottom = y_top - right_h
     c.saveState()
     c.setFillColor(_C_SURFACE)
     c.setStrokeColor(_C_HAIR)
     c.setLineWidth(0.6)
     c.rect(right_x, box_bottom, right_w, right_h, stroke=1, fill=1)
-    # 2pt ink top bar
     c.setStrokeColor(_C_INK)
     c.setLineWidth(1.6)
     c.line(right_x, y_top, right_x + right_w, y_top)
@@ -1308,7 +1522,7 @@ def _draw_p1_moment(
         cur_ry -= mid_h
         tbl_obj.drawOn(c, right_x + box_pad_x, cur_ry)
     else:
-        row_h = 21.0
+        row_h = 20.5
         for lbl, val_s, tone in status_items:
             cur_ry -= row_h
             bg = _C_GREEN_SOFT if tone == "ok" else (_C_RED_SOFT if tone == "stop" else _C_WHITE)
@@ -1324,10 +1538,10 @@ def _draw_p1_moment(
             c.setFillColor(bar)
             c.rect(right_x + box_pad_x, cur_ry, 2.5, row_h, stroke=0, fill=1)
             c.setFillColor(fg)
-            c.setFont("Helvetica", 7.9)
-            c.drawString(right_x + box_pad_x + 7.5, cur_ry + 7.2, lbl)
-            c.setFont("Helvetica-Bold", 7.9)
-            c.drawRightString(right_x + box_pad_x + inner_w - 6.5, cur_ry + 7.2, val_s)
+            c.setFont("Helvetica", 7.8)
+            c.drawString(right_x + box_pad_x + 7.5, cur_ry + 7.0, lbl)
+            c.setFont("Helvetica-Bold", 7.8)
+            c.drawRightString(right_x + box_pad_x + inner_w - 6.5, cur_ry + 7.0, val_s)
             c.restoreState()
             cur_ry -= 4.5
         cur_ry += 4.5
@@ -1336,12 +1550,12 @@ def _draw_p1_moment(
 
     row_bottom = y_top - max(left_h, right_h)
     if draw_bottom_rule:
-        rule_y = row_bottom - 11.0
+        rule_y = row_bottom - 10.5
         c.setStrokeColor(_C_HAIR)
         c.setLineWidth(0.65)
         c.line(x, rule_y, x + content_w, rule_y)
-        return rule_y - 11.0
-    return row_bottom - 10.0
+        return rule_y - 10.5
+    return row_bottom - 9.0
 
 
 def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) -> Path:
@@ -1354,6 +1568,7 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     margin_x = 46.0
     content_w = page_w - 2 * margin_x
     total_pages = 3 if brief_data.get("include_log") else 2
+    gen_stamp = brief_data.get("generated_stamp", "")
 
     copy = _build_copy_blocks(brief_data)
     m1 = brief_data["moment1"]
@@ -1374,24 +1589,25 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
         margin_x=margin_x,
         doc_type="Session Brief",
         meta_top=brief_data["period_display"],
-        meta_sub=brief_data["header_status"],
+        meta_sub=f"{brief_data['header_status']} · {gen_stamp}",
         title_rl=f"{_xesc(brief_data['short_company_name'])}: Weekly Cash &amp; Payroll",
     )
 
-    st_lead = ParagraphStyle("Lead", fontName="Helvetica", fontSize=9.2, leading=13.8, textColor=_C_INK)
+    st_lead = ParagraphStyle("Lead", fontName="Helvetica", fontSize=9.0, leading=13.4, textColor=_C_INK)
     p_lead = Paragraph(_xesc(copy["p1_lead"]), st_lead)
     _, lh = p_lead.wrap(content_w, 80)
     y -= lh
     p_lead.drawOn(c, margin_x, y)
-    y -= 13.0
+    y -= 12.0
 
     # Moment 1
     m1_rows: list[tuple[str, str, str]] = [
         (f"Prior week’s plan ({m1['prior_date_label'].split(',')[0]} edition)", _fmt_usd(m1["prior_value"]), "base")
     ]
     for drv in m1["drivers"]:
+        amt_d = _to_dec(drv["amount"]) or ZERO
         m1_rows.append(
-            (drv["label"], _fmt_usd(drv["amount"], signed=True), "pos" if drv["amount"] >= 0 else "neg")
+            (drv["label"], _fmt_usd(amt_d, signed=True), "pos" if amt_d >= ZERO else "neg")
         )
     m1_rows.append((f"Actual opening cash ({m1['current_date_label'].split(',')[0]})", _fmt_usd(m1["opening_cash"]), "total"))
 
@@ -1413,11 +1629,13 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     # Moment 2
     m2_rows = []
     for r in m2["rows"]:
-        if m2["mode"] == "revised":
-            hl = bool(r["changed"] and (r["after"] or 0) > r["before"])
-            m2_rows.append((r["label"], _fmt_usd(r["before"]), _fmt_usd(r["after"]), hl))
+        if m2["mode"] in {"revised", "previewed"}:
+            b_d = _to_dec(r["before"]) or ZERO
+            a_d = _to_dec(r["after"]) or ZERO
+            tone = "pos" if r.get("changed") and a_d > b_d else ("neg" if r.get("changed") and a_d < b_d else "neutral")
+            m2_rows.append((r["label"], _fmt_usd(b_d), _fmt_usd(a_d), tone))
         else:
-            m2_rows.append((r["label"], _fmt_usd(r["before"]), str(r.get("status_text", "")), bool(r["changed"])))
+            m2_rows.append((r["label"], _fmt_usd(r["before"]), str(r.get("status_text", "")), str(r.get("tone", "neutral"))))
 
     y = _draw_p1_moment(
         c,
@@ -1435,9 +1653,8 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     )
 
     # Moment 3
-    tieout_tone = "ok" if abs(m3["tieout_variance"]) < 0.005 else "stop"
-    hold_tone = "stop" if m3["blocking_count"] > 0 else "ok"
-    hold_val = f"Held ({m3['blocking_count']} unmapped dept)" if m3["blocking_count"] > 0 else "Clear for approval"
+    var_dec = _to_dec(m3["tieout_variance"]) or ZERO
+    tieout_tone = "ok" if var_dec == ZERO else "stop"
     pay_date_short = m3["pay_date_label"].split(",")[0]
 
     y = _draw_p1_moment(
@@ -1446,34 +1663,21 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
         y_top=y,
         content_w=content_w,
         kicker="03 · Controls Enforced in Software",
-        heading="Accounting holds and privacy walls held even when the math balanced",
+        heading=copy["m3_heading"],
         body_rl=copy["m3_rl"],
         box_title=f"Payroll Control Summary ({pay_date_short})",
         box_kind="status",
         box_payload=[
-            ("Register-to-wire tie-out", f"{_fmt_usd(m3['tieout_variance'])} variance", tieout_tone),
-            ("ERP posting & approval", hold_val, hold_tone),
-            ("Employee pay register", "Excluded from email", "neutral"),
+            ("Register-to-wire tie-out", f"{_fmt_usd(var_dec)} variance", tieout_tone),
+            ("ERP posting & approval", copy["hold_val"], copy["hold_tone"]),
+            ("Employee pay register", "Withheld from attachments", "neutral"),
         ],
         source_note=m3["open_review_note"],
         draw_bottom_rule=False,
     )
 
-    # Session rollup line
-    rollup_y = max(y - 6.0, 114.0)
-    c.setStrokeColor(_C_HAIR)
-    c.setLineWidth(0.65)
-    c.line(margin_x, rollup_y + 11.0, page_w - margin_x, rollup_y + 11.0)
-    c.setFont("Helvetica-Bold", 7.6)
-    c.setFillColor(_C_INK)
-    c.drawString(margin_x, rollup_y, "Session activity:")
-    c.setFont("Helvetica", 7.6)
-    c.setFillColor(_C_MUTED)
-    c.drawString(margin_x + 67.0, rollup_y, brief_data["rollup_summary"])
-    c.drawRightString(page_w - margin_x, rollup_y, "Full log available on request")
-
     # Bottom-anchored inverted dark-ink bridge band
-    st_bridge = ParagraphStyle("Br", fontName="Helvetica", fontSize=8.6, leading=12.6, textColor=_C_INVERT_BODY)
+    st_bridge = ParagraphStyle("Br", fontName="Helvetica", fontSize=8.4, leading=12.2, textColor=_C_INVERT_BODY)
     p_bridge = Paragraph(
         '<font name="Helvetica-Bold" color="#FFFFFF">WHAT RAN IN THIS SESSION:</font> '
         "the equivalent of a custom operational application—data intake across fragmented systems, "
@@ -1482,13 +1686,27 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
         st_bridge,
     )
     _, brh = p_bridge.wrap(content_w - 24.0, 80)
-    band_h = brh + 18.0
-    band_y = 48.0
+    band_h = brh + 16.0
+    band_y = 46.0
+
+    # Session rollup line placed safely above the dark bridge band
+    rollup_y = max(min(y - 5.0, band_y + band_h + 26.0), band_y + band_h + 10.0)
+    c.setStrokeColor(_C_HAIR)
+    c.setLineWidth(0.65)
+    c.line(margin_x, rollup_y + 10.5, page_w - margin_x, rollup_y + 10.5)
+    c.setFont("Helvetica-Bold", 7.4)
+    c.setFillColor(_C_INK)
+    c.drawString(margin_x, rollup_y, "Session activity:")
+    c.setFont("Helvetica", 7.4)
+    c.setFillColor(_C_MUTED)
+    c.drawString(margin_x + 65.0, rollup_y, brief_data["rollup_summary"])
+    c.drawRightString(page_w - margin_x, rollup_y, copy["rollup_right"])
+
     c.saveState()
     c.setFillColor(_C_INK)
     c.rect(margin_x, band_y, content_w, band_h, stroke=0, fill=1)
     c.restoreState()
-    p_bridge.drawOn(c, margin_x + 12.0, band_y + 9.0)
+    p_bridge.drawOn(c, margin_x + 12.0, band_y + 8.0)
 
     _draw_footer(
         c,
@@ -1510,7 +1728,7 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
         margin_x=margin_x,
         doc_type="What This Means for Your Business",
         meta_top="Immediate operational return",
-        meta_sub="Foundational long-term asset",
+        meta_sub=f"Foundational long-term asset · {gen_stamp}",
         title_rl=f'If You Run <font color="#0F6076">{_xesc(copy["p2_target"])}</font> This Way',
     )
 
@@ -1518,7 +1736,7 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     _, l2h = p_lead2.wrap(content_w, 80)
     y -= l2h
     p_lead2.drawOn(c, margin_x, y)
-    y -= 16.0
+    y -= 14.0
 
     consequences = [
         ("01", "Enterprise operating capability at a fraction of ERP cost and complexity", _xesc(copy["c1_text"])),
@@ -1527,46 +1745,13 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
         ("04", "You build an owned, vendor-neutral asset that compounds across workflows", copy["c4_rl"]),
     ]
 
-    st_vh = ParagraphStyle("VH", fontName="Helvetica-Bold", fontSize=11.0, leading=13.8, textColor=_C_INK)
-    st_vp = ParagraphStyle("VP", fontName="Helvetica", fontSize=8.7, leading=13.2, textColor=_C_BODY)
-    idx_col_w = 26.0
-    idx_gap = 11.0
-    txt_w = content_w - idx_col_w - idx_gap
-
-    for i, (idx_str, title_s, body_rl) in enumerate(consequences):
-        p_vh = Paragraph(_xesc(title_s), st_vh)
-        p_vp = Paragraph(body_rl, st_vp)
-        _, vhh = p_vh.wrap(txt_w, 40)
-        _, vph = p_vp.wrap(txt_w, 120)
-
-        # Teal tick + index number on left
-        c.saveState()
-        c.setStrokeColor(_C_TEAL)
-        c.setLineWidth(1.6)
-        c.line(margin_x, y - 2.0, margin_x + idx_col_w, y - 2.0)
-        c.setFont("Helvetica-Bold", 9.0)
-        c.setFillColor(_C_TEAL)
-        c.drawString(margin_x, y - 14.0, idx_str)
-        c.restoreState()
-
-        p_vh.drawOn(c, margin_x + idx_col_w + idx_gap, y - vhh)
-        p_vp.drawOn(c, margin_x + idx_col_w + idx_gap, y - vhh - 4.0 - vph)
-
-        y = y - vhh - 4.0 - vph
-        if i < len(consequences) - 1:
-            y -= 11.0
-            c.setStrokeColor(_C_HAIR)
-            c.setLineWidth(0.65)
-            c.line(margin_x, y, page_w - margin_x, y)
-            y -= 12.0
-
-    # Bottom-anchored green-topped starting-point box
+    # Pre-measure bottom start box so we can guard against collision on long custom specs (P2)
     st_sk = ParagraphStyle("SK", fontName="Helvetica-Bold", fontSize=7.2, leading=9.5, textColor=_C_GREEN)
-    st_sh = ParagraphStyle("SH", fontName="Helvetica-Bold", fontSize=10.0, leading=12.8, textColor=_C_INK)
-    st_sp = ParagraphStyle("SP", fontName="Helvetica", fontSize=8.4, leading=12.4, textColor=_C_BODY)
-    st_snx = ParagraphStyle("SNX", fontName="Helvetica", fontSize=8.4, leading=12.2, textColor=_C_INK)
+    st_sh = ParagraphStyle("SH", fontName="Helvetica-Bold", fontSize=9.8, leading=12.4, textColor=_C_INK)
+    st_sp = ParagraphStyle("SP", fontName="Helvetica", fontSize=8.2, leading=12.0, textColor=_C_BODY)
+    st_snx = ParagraphStyle("SNX", fontName="Helvetica", fontSize=8.2, leading=11.8, textColor=_C_INK)
 
-    sb_pad = 12.0
+    sb_pad = 11.5
     sb_w = content_w - 2 * sb_pad
     p_sk = Paragraph("HOW TO START WITHOUT A BIG-BANG COMMITMENT", st_sk)
     p_sh = Paragraph("One company, one recurring workflow, proven side-by-side", st_sh)
@@ -1575,12 +1760,56 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
 
     _, skh = p_sk.wrap(sb_w, 20)
     _, shh = p_sh.wrap(sb_w, 25)
-    _, sph = p_sp.wrap(sb_w, 90)
-    _, snxh = p_snx.wrap(sb_w, 40)
+    _, sph = p_sp.wrap(sb_w, 100)
+    _, snxh = p_snx.wrap(sb_w, 50)
+    sb_h = 9.0 + skh + 3.0 + shh + 4.0 + sph + 5.5 + snxh + 9.0
+    sb_y = 46.0
+    available_for_items = y - (sb_y + sb_h + 14.0)
 
-    sb_h = 10.0 + skh + 3.0 + shh + 4.0 + sph + 6.0 + snxh + 10.0
-    sb_y = 48.0
+    idx_col_w = 26.0
+    idx_gap = 11.0
+    txt_w = content_w - idx_col_w - idx_gap
 
+    # Choose normal or compact density automatically if long custom specs would otherwise crowd the start box
+    for body_fs, body_lead, row_pad in ((8.6, 13.0, 11.0), (8.1, 11.8, 8.0), (7.6, 10.8, 5.5)):
+        st_vh = ParagraphStyle("VH", fontName="Helvetica-Bold", fontSize=10.6 if body_fs >= 8.5 else 9.8, leading=13.2, textColor=_C_INK)
+        st_vp = ParagraphStyle("VP", fontName="Helvetica", fontSize=body_fs, leading=body_lead, textColor=_C_BODY)
+        measured = []
+        total_h = 0.0
+        for i, (idx_str, title_s, body_rl) in enumerate(consequences):
+            p_vh = Paragraph(_xesc(title_s), st_vh)
+            p_vp = Paragraph(body_rl, st_vp)
+            _, vhh = p_vh.wrap(txt_w, 40)
+            _, vph = p_vp.wrap(txt_w, 140)
+            measured.append((idx_str, p_vh, vhh, p_vp, vph))
+            total_h += vhh + 3.5 + vph
+            if i < len(consequences) - 1:
+                total_h += 2.0 * row_pad
+        if total_h <= available_for_items:
+            break
+
+    for i, (idx_str, p_vh, vhh, p_vp, vph) in enumerate(measured):
+        c.saveState()
+        c.setStrokeColor(_C_TEAL)
+        c.setLineWidth(1.6)
+        c.line(margin_x, y - 2.0, margin_x + idx_col_w, y - 2.0)
+        c.setFont("Helvetica-Bold", 8.8)
+        c.setFillColor(_C_TEAL)
+        c.drawString(margin_x, y - 13.5, idx_str)
+        c.restoreState()
+
+        p_vh.drawOn(c, margin_x + idx_col_w + idx_gap, y - vhh)
+        p_vp.drawOn(c, margin_x + idx_col_w + idx_gap, y - vhh - 3.5 - vph)
+
+        y = y - vhh - 3.5 - vph
+        if i < len(measured) - 1:
+            y -= row_pad
+            c.setStrokeColor(_C_HAIR)
+            c.setLineWidth(0.65)
+            c.line(margin_x, y, page_w - margin_x, y)
+            y -= row_pad
+
+    # Draw bottom-anchored starting-point box (guaranteed zero overlap)
     c.saveState()
     c.setFillColor(_C_SURFACE)
     c.setStrokeColor(_C_HAIR)
@@ -1591,13 +1820,13 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     c.line(margin_x, sb_y + sb_h, margin_x + content_w, sb_y + sb_h)
     c.restoreState()
 
-    cur_sy = sb_y + sb_h - 10.0 - skh
+    cur_sy = sb_y + sb_h - 9.0 - skh
     p_sk.drawOn(c, margin_x + sb_pad, cur_sy)
     cur_sy -= 3.0 + shh
     p_sh.drawOn(c, margin_x + sb_pad, cur_sy)
     cur_sy -= 4.0 + sph
     p_sp.drawOn(c, margin_x + sb_pad, cur_sy)
-    cur_sy -= 6.0 + snxh
+    cur_sy -= 5.5 + snxh
     p_snx.drawOn(c, margin_x + sb_pad, cur_sy)
 
     _draw_footer(
@@ -1611,7 +1840,7 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
     c.showPage()
 
     # ======================================================================
-    # OPTIONAL PAGE 3: SESSION AUDIT LOG & RUN HISTORY (`include_log=True`)
+    # OPTIONAL PAGE 3: RUN HISTORY, CONTROL EVENTS & AUDIT TRAIL (`include_log=True`)
     # ======================================================================
     if brief_data.get("include_log"):
         y = _draw_masthead(
@@ -1621,107 +1850,159 @@ def render_session_brief_pdf(brief_data: dict[str, Any], workspace_dir: Path) ->
             margin_x=margin_x,
             doc_type="Session Audit Appendix",
             meta_top=brief_data["period_display"],
-            meta_sub="Full run & decision log",
-            title_rl="Session Run History &amp; Audit Trail",
+            meta_sub=f"Generated {gen_stamp}",
+            title_rl="Session Run History, Control Events &amp; Audit Trail",
         )
+        footer_guard = 50.0
 
         st_sec = ParagraphStyle("Sec", fontName="Helvetica-Bold", fontSize=7.4, leading=10.0, textColor=_C_TEAL)
-        st_th = ParagraphStyle("ATH", fontName="Helvetica-Bold", fontSize=7.0, leading=9.2, textColor=_C_MUTED)
-        st_td = ParagraphStyle("ATD", fontName="Helvetica", fontSize=7.8, leading=10.4, textColor=_C_BODY)
+        st_th = ParagraphStyle("ATH", fontName="Helvetica-Bold", fontSize=6.8, leading=9.0, textColor=_C_MUTED)
+        st_td = ParagraphStyle("ATD", fontName="Helvetica", fontSize=7.5, leading=9.8, textColor=_C_BODY)
+        st_ok = ParagraphStyle("AOK", fontName="Helvetica-Bold", fontSize=7.5, leading=9.8, textColor=_C_GREEN)
+        st_blk = ParagraphStyle("ABLK", fontName="Helvetica-Bold", fontSize=7.5, leading=9.8, textColor=_C_RED)
+        st_more = ParagraphStyle("AM", fontName="Helvetica", fontSize=7.2, leading=9.4, textColor=_C_MUTED)
 
-        p_s1 = Paragraph("PRESERVED DRAFTS &amp; RUNS", st_sec)
-        _, s1h = p_s1.wrap(content_w, 20)
-        y -= s1h
-        p_s1.drawOn(c, margin_x, y)
-        y -= 6.0
+        def _draw_appendix_section(
+            heading_s: str,
+            headers: tuple[str, ...],
+            rows: list[list[Any]],
+            col_fracs: tuple[float, ...],
+            extra_count: int,
+            extra_label: str,
+            cur_y: float,
+        ) -> float:
+            if cur_y < footer_guard + 55.0:
+                return cur_y
+            p_sec = Paragraph(_xesc(heading_s.upper()), st_sec)
+            _, sh = p_sec.wrap(content_w, 20)
+            cur_y -= sh
+            p_sec.drawOn(c, margin_x, cur_y)
+            cur_y -= 5.0
 
-        run_table_data = [
-            [Paragraph(h, st_th) for h in ("MODULE", "PERIOD", "RUN", "STATUS", "CHECKS", "CREATED (UTC)")]
-        ]
-        for r in (brief_data.get("runs") or [])[:12]:
-            run_table_data.append(
-                [
-                    Paragraph(_xesc(str(r["module"]).title()), st_td),
-                    Paragraph(_xesc(r["period"]), st_td),
-                    Paragraph(f"Draft {int(r['draft_number'])}", st_td),
-                    Paragraph(_xesc(r["status"]), st_td),
-                    Paragraph(f"{int(r['blocking_count'])} blocking / {int(r['open_review_count'])} review", st_td),
-                    Paragraph(_xesc(str(r["created_at"])[:19]), st_td),
-                ]
-            )
-        t_runs = Table(
-            run_table_data,
-            colWidths=[content_w * 0.13, content_w * 0.14, content_w * 0.11, content_w * 0.13, content_w * 0.25, content_w * 0.24],
-        )
-        t_runs.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), _C_SURFACE),
-                    ("LINEBELOW", (0, 0), (-1, 0), 1.0, _C_INK),
-                    ("LINEBELOW", (0, 1), (-1, -1), 0.5, _C_HAIR),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
-            )
-        )
-        _, rh = t_runs.wrap(content_w, 260)
-        y -= rh
-        t_runs.drawOn(c, margin_x, y)
-        y -= 20.0
+            tbl_rows = [[Paragraph(h, st_th) for h in headers]] + rows
+            # Trim rows cleanly if needed so table never collides with footer
+            while len(tbl_rows) > 2:
+                t_try = Table(tbl_rows, colWidths=[content_w * f for f in col_fracs])
+                t_try.setStyle(
+                    TableStyle(
+                        [
+                            ("BACKGROUND", (0, 0), (-1, 0), _C_SURFACE),
+                            ("LINEBELOW", (0, 0), (-1, 0), 1.0, _C_INK),
+                            ("LINEBELOW", (0, 1), (-1, -1), 0.5, _C_HAIR),
+                            ("LEFTPADDING", (0, 0), (-1, -1), 3.5),
+                            ("RIGHTPADDING", (0, 0), (-1, -1), 3.5),
+                            ("TOPPADDING", (0, 0), (-1, -1), 3.2),
+                            ("BOTTOMPADDING", (0, 0), (-1, -1), 3.2),
+                            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+                        ]
+                    )
+                )
+                _, th = t_try.wrap(content_w, 400)
+                if cur_y - th >= footer_guard + 16.0:
+                    break
+                tbl_rows.pop()
+                extra_count += 1
 
-        p_s2 = Paragraph("LOGGED OPERATOR &amp; CONFIGURATION DECISIONS", st_sec)
-        _, s2h = p_s2.wrap(content_w, 20)
-        y -= s2h
-        p_s2.drawOn(c, margin_x, y)
-        y -= 6.0
-
-        audit_table_data = [
-            [Paragraph(h, st_th) for h in ("TIMESTAMP (UTC)", "ACTOR", "TARGET / ACTION", "SUMMARY")]
-        ]
-        entries = brief_data.get("audit_entries") or []
-        if entries:
-            for a in entries[:14]:
-                audit_table_data.append(
+            t_final = Table(tbl_rows, colWidths=[content_w * f for f in col_fracs])
+            t_final.setStyle(
+                TableStyle(
                     [
-                        Paragraph(_xesc(str(a.get("timestamp", ""))[:19]), st_td),
-                        Paragraph(_xesc(a.get("actor", "—")), st_td),
-                        Paragraph(_xesc(a.get("field_path") or a.get("action") or "—"), st_td),
-                        Paragraph(_xesc(a.get("reason") or a.get("summary") or "—"), st_td),
+                        ("BACKGROUND", (0, 0), (-1, 0), _C_SURFACE),
+                        ("LINEBELOW", (0, 0), (-1, 0), 1.0, _C_INK),
+                        ("LINEBELOW", (0, 1), (-1, -1), 0.5, _C_HAIR),
+                        ("LEFTPADDING", (0, 0), (-1, -1), 3.5),
+                        ("RIGHTPADDING", (0, 0), (-1, -1), 3.5),
+                        ("TOPPADDING", (0, 0), (-1, -1), 3.2),
+                        ("BOTTOMPADDING", (0, 0), (-1, -1), 3.2),
+                        ("VALIGN", (0, 0), (-1, -1), "TOP"),
                     ]
                 )
-        else:
-            audit_table_data.append([Paragraph("No configuration or operator decisions recorded yet.", st_td), "", "", ""])
-
-        t_audit = Table(
-            audit_table_data,
-            colWidths=[content_w * 0.21, content_w * 0.17, content_w * 0.22, content_w * 0.40],
-        )
-        t_audit.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), _C_SURFACE),
-                    ("LINEBELOW", (0, 0), (-1, 0), 1.0, _C_INK),
-                    ("LINEBELOW", (0, 1), (-1, -1), 0.5, _C_HAIR),
-                    ("LEFTPADDING", (0, 0), (-1, -1), 4),
-                    ("RIGHTPADDING", (0, 0), (-1, -1), 4),
-                    ("TOPPADDING", (0, 0), (-1, -1), 4),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
-                    ("VALIGN", (0, 0), (-1, -1), "TOP"),
-                ]
             )
+            _, th = t_final.wrap(content_w, 400)
+            cur_y -= th
+            t_final.drawOn(c, margin_x, cur_y)
+
+            if extra_count > 0 and cur_y > footer_guard + 10.0:
+                p_m = Paragraph(_xesc(f"+{extra_count} earlier {extra_label} not shown."), st_more)
+                _, mh = p_m.wrap(content_w, 16)
+                cur_y -= 3.5 + mh
+                p_m.drawOn(c, margin_x, cur_y)
+
+            return cur_y - 14.0
+
+        # 1. Runs (newest first)
+        all_runs = brief_data.get("runs") or []
+        shown_runs = all_runs[:_MAX_LOG_RUNS]
+        run_rows_p = [
+            [
+                Paragraph(_xesc(str(r["module"]).title()), st_td),
+                Paragraph(_xesc(r["period"]), st_td),
+                Paragraph(f"Draft {int(r['draft_number'])}", st_td),
+                Paragraph(_xesc(r["status"]), st_td),
+                Paragraph(f"{int(r['blocking_count'])} blocking / {int(r['open_review_count'])} review", st_td),
+                Paragraph(_xesc(str(r["created_at"])[:19]), st_td),
+            ]
+            for r in shown_runs
+        ]
+        y = _draw_appendix_section(
+            "Preserved Drafts & Runs (Newest First)",
+            ("MODULE", "PERIOD", "RUN", "STATUS", "CHECKS", "CREATED (UTC)"),
+            run_rows_p,
+            (0.13, 0.14, 0.11, 0.13, 0.25, 0.24),
+            max(0, len(all_runs) - len(shown_runs)),
+            "run(s)",
+            y,
         )
-        _, ah = t_audit.wrap(content_w, 320)
-        y -= ah
-        t_audit.drawOn(c, margin_x, y)
+
+        # 2. Control & Query Events (newest first)
+        all_events = brief_data.get("session_events") or []
+        shown_events = all_events[:_MAX_LOG_EVENTS]
+        event_rows_p = [
+            [
+                Paragraph(_xesc(str(e.get("timestamp", ""))[:19]), st_td),
+                Paragraph(_xesc(e.get("command", "")), st_td),
+                Paragraph("OK" if e.get("ok") else "BLOCKED", st_ok if e.get("ok") else st_blk),
+                Paragraph(_xesc(_describe_event(e)), st_td),
+            ]
+            for e in shown_events
+        ] or [[Paragraph("No CLI query or control events logged yet.", st_td), "", "", ""]]
+        y = _draw_appendix_section(
+            "Control & Query Events (Newest First)",
+            ("TIMESTAMP (UTC)", "COMMAND", "RESULT", "DETAILS"),
+            event_rows_p,
+            (0.22, 0.14, 0.13, 0.51),
+            max(0, len(all_events) - len(shown_events)),
+            "event(s)",
+            y,
+        )
+
+        # 3. Audit Trail (newest first)
+        all_audit = brief_data.get("audit_entries") or []
+        shown_audit = all_audit[:_MAX_LOG_AUDIT]
+        audit_rows_p = [
+            [
+                Paragraph(_xesc(str(a.get("timestamp", ""))[:19]), st_td),
+                Paragraph(_xesc(a.get("actor", "—")), st_td),
+                Paragraph(_xesc(a.get("field_path") or a.get("action") or "—"), st_td),
+                Paragraph(_xesc(a.get("reason") or a.get("summary") or "—"), st_td),
+            ]
+            for a in shown_audit
+        ] or [[Paragraph("No configuration or operator decisions recorded yet.", st_td), "", "", ""]]
+        _draw_appendix_section(
+            "Logged Operator & Configuration Decisions (Newest First)",
+            ("TIMESTAMP (UTC)", "ACTOR", "TARGET / ACTION", "SUMMARY"),
+            audit_rows_p,
+            (0.19, 0.15, 0.28, 0.38),
+            max(0, len(all_audit) - len(shown_audit)),
+            "audit entries",
+            y,
+        )
 
         _draw_footer(
             c,
             page_w=page_w,
             margin_x=margin_x,
-            left_text="Rare Kaon · Appendix generated directly from workspace SQLite & audit trail",
+            left_text="Rare Kaon · Appendix generated directly from workspace SQLite, session-events.jsonl & audit trail",
             page_num=3,
             total_pages=total_pages,
         )

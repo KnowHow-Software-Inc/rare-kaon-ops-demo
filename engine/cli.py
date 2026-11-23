@@ -1,4 +1,4 @@
-"""Structured JSON CLI implementing all 12 frozen `CLI_COMMANDS`.
+"""Structured JSON CLI implementing all 13 `CLI_COMMANDS`.
 
 Every command returns a uniform `ok_envelope` or `error_envelope` JSON document
 (from `engine/contracts.py`) so agent harnesses never scrape prose or improvise
@@ -27,7 +27,18 @@ from engine.operations import approve_run, decide_change, post_payroll, run_what
 from engine.payroll import prepare_payroll
 from engine.queries import query_explain, query_overview, query_readiness
 from engine.weekly import prepare_weekly
-from engine.workspace import init_workspace, reset_workspace, resolve_workspace
+from engine.workspace import (
+    append_session_event,
+    init_workspace,
+    reset_workspace,
+    resolve_workspace,
+)
+
+# Commands logged to `session-events.jsonl` for grounded Session Brief evidence.
+# `what-if` is strictly excluded so it preserves zero-byte workspace immutability.
+_LOGGED_SESSION_COMMANDS = frozenset(
+    {"readiness", "explain", "ingest", "change", "prepare", "approve", "post"}
+)
 
 
 class _JsonArgumentParser(argparse.ArgumentParser):
@@ -57,7 +68,7 @@ def _add_common_flags(parser: argparse.ArgumentParser, *, include_data: bool = T
 
 
 def build_parser() -> _JsonArgumentParser:
-    """Build the CLI parser for all 12 frozen `CLI_COMMANDS`."""
+    """Build the CLI parser for all 13 `CLI_COMMANDS`."""
     parser = _JsonArgumentParser(
         prog="rare-kaon-demo",
         description="Rare Kaon Ops Demo — deterministic single-model finance & ops CLI.",
@@ -166,19 +177,51 @@ def build_parser() -> _JsonArgumentParser:
     return parser
 
 
+def _annotate_workspace_scope(envelope: dict[str, Any], ws: Path) -> dict[str, Any]:
+    """Flag when the resolved workspace lies outside the active session CWD."""
+    try:
+        cwd = Path.cwd().resolve()
+        ws_res = ws.resolve()
+        inside = ws_res == cwd or cwd in ws_res.parents or ws_res in cwd.parents
+    except OSError:
+        return envelope
+    if not inside:
+        envelope["workspace_outside_session"] = True
+        envelope["cwd"] = str(cwd)
+    return envelope
+
+
+def _log_cli_event(ws: Path | None, args: argparse.Namespace, *, ok: bool, error_code: str | None = None) -> None:
+    cmd = getattr(args, "command", None)
+    if ws is None or cmd not in _LOGGED_SESSION_COMMANDS:
+        return
+    append_session_event(
+        ws,
+        command=str(cmd),
+        ok=ok,
+        error_code=error_code,
+        topic=getattr(args, "topic", None),
+        module=getattr(args, "module", None),
+        period=getattr(args, "period", None),
+        target=getattr(args, "target", None),
+        change_id=getattr(args, "change_id", None),
+    )
+
+
 def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
     cmd = args.command
     if not cmd:
         raise EngineError(
             "COMMAND_REQUIRED",
             "No CLI subcommand provided.",
-            "Specify one of: init, reset, overview, readiness, explain, what-if, ingest, change, prepare, approve, post, config.",
+            "Specify one of: init, reset, overview, readiness, explain, what-if, ingest, change, prepare, approve, post, config, brief.",
         )
 
     if cmd == "init":
         if args.dest:
             dest = Path(args.dest).expanduser().resolve()
             data = init_workspace(dest)
+            ws = dest
         else:
             ws = resolve_workspace(None, auto_init=True)
             data = {
@@ -187,112 +230,123 @@ def _dispatch(args: argparse.Namespace) -> dict[str, Any]:
                 "setup_html": str(ws / "Setup.html"),
                 "initialized": True,
             }
-        return ok_envelope("init", data, workspace=data["workspace_dir"])
+        return _annotate_workspace_scope(ok_envelope("init", data, workspace=data["workspace_dir"]), ws)
 
     if cmd == "reset":
         # Resolve without auto_init so unmarked explicit directories are cleanly refused
         ws = resolve_workspace(args.data, auto_init=False)
         data = reset_workspace(ws)
-        return ok_envelope("reset", data, workspace=str(ws))
+        return _annotate_workspace_scope(ok_envelope("reset", data, workspace=str(ws)), ws)
 
     # All remaining commands automatically resolve/materialize the workspace on first run
     ws = resolve_workspace(args.data, auto_init=True)
 
-    if cmd == "overview":
-        data = query_overview(ws, refresh=bool(args.refresh))
-        return ok_envelope("overview", data, workspace=str(ws))
+    try:
+        if cmd == "overview":
+            data = query_overview(ws, refresh=bool(args.refresh))
+            return _annotate_workspace_scope(ok_envelope("overview", data, workspace=str(ws)), ws)
 
-    if cmd == "readiness":
-        data = query_readiness(ws, period=args.period)
-        return ok_envelope("readiness", data, workspace=str(ws))
+        if cmd == "readiness":
+            data = query_readiness(ws, period=args.period)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("readiness", data, workspace=str(ws)), ws)
 
-    if cmd == "explain":
-        data = query_explain(ws, topic=args.topic, period=args.period)
-        return ok_envelope("explain", data, workspace=str(ws))
+        if cmd == "explain":
+            data = query_explain(ws, topic=args.topic, period=args.period)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("explain", data, workspace=str(ws)), ws)
 
-    if cmd == "what-if":
-        data = run_what_if(ws, period=args.period, override_json=args.override)
-        return ok_envelope("what-if", data, workspace=str(ws))
+        if cmd == "what-if":
+            data = run_what_if(ws, period=args.period, override_json=args.override)
+            return _annotate_workspace_scope(ok_envelope("what-if", data, workspace=str(ws)), ws)
 
-    if cmd == "ingest":
-        data = ingest_file(ws, period=args.period, file_path=args.file, feed_id=args.feed)
-        return ok_envelope("ingest", data, workspace=str(ws))
+        if cmd == "ingest":
+            data = ingest_file(ws, period=args.period, file_path=args.file, feed_id=args.feed)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("ingest", data, workspace=str(ws)), ws)
 
-    if cmd == "change":
-        data = decide_change(
-            ws,
-            action=args.action,
-            change_id=args.change_id,
-            by=args.by,
-            reason=args.reason,
-        )
-        return ok_envelope("change", data, workspace=str(ws))
-
-    if cmd == "prepare":
-        period = args.period or (DEFAULT_WEEKLY_PERIOD if args.module == "weekly" else DEFAULT_PAYROLL_PERIOD)
-        if args.module == "weekly":
-            data = prepare_weekly(ws, period=period)
-        else:
-            data = prepare_payroll(ws, period=period)
-        return ok_envelope("prepare", data, workspace=str(ws))
-
-    if cmd == "approve":
-        period = args.period or (DEFAULT_WEEKLY_PERIOD if args.module == "weekly" else DEFAULT_PAYROLL_PERIOD)
-        data = approve_run(ws, module=args.module, period=period, by=args.by)
-        return ok_envelope("approve", data, workspace=str(ws))
-
-    if cmd == "post":
-        data = post_payroll(ws, module=args.module, period=args.period, target=args.target)
-        return ok_envelope("post", data, workspace=str(ws))
-
-    if cmd == "config":
-        if args.action == "show":
-            data = config_show(ws, target=args.target)
-        else:
-            if not args.target:
-                raise EngineError(
-                    "CONFIG_TARGET_REQUIRED",
-                    "`config set` requires `--target <feeds|assumptions|outputs|payroll-mappings>`.",
-                    "Re-run `config set` with `--target`, `--path`, `--value`, and `--by`.",
-                )
-            if not args.path:
-                raise EngineError(
-                    "CONFIG_PATH_REQUIRED",
-                    "`config set` requires `--path <dot.path>`.",
-                    "Specify the configuration dot path to update.",
-                )
-            if args.value is None:
-                raise EngineError(
-                    "CONFIG_VALUE_REQUIRED",
-                    "`config set` requires `--value '<JSON>'`.",
-                    "Provide a JSON value literal for `--value`.",
-                )
-            data = config_set(
+        if cmd == "change":
+            data = decide_change(
                 ws,
-                target=args.target,
-                path=args.path,
-                raw_value=args.value,
-                by=args.by or "",
-                reason=args.reason or "",
+                action=args.action,
+                change_id=args.change_id,
+                by=args.by,
+                reason=args.reason,
             )
-        return ok_envelope("config", data, workspace=str(ws))
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("change", data, workspace=str(ws)), ws)
 
-    if cmd == "brief":
-        data = generate_session_brief(
-            ws,
-            spec_json=args.spec,
-            target_company=args.target_company,
-            target_workflow=args.target_workflow,
-            target_harness=args.target_harness,
-            include_log=bool(args.include_log),
+        if cmd == "prepare":
+            period = args.period or (DEFAULT_WEEKLY_PERIOD if args.module == "weekly" else DEFAULT_PAYROLL_PERIOD)
+            if args.module == "weekly":
+                data = prepare_weekly(ws, period=period)
+            else:
+                data = prepare_payroll(ws, period=period)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("prepare", data, workspace=str(ws)), ws)
+
+        if cmd == "approve":
+            period = args.period or (DEFAULT_WEEKLY_PERIOD if args.module == "weekly" else DEFAULT_PAYROLL_PERIOD)
+            data = approve_run(ws, module=args.module, period=period, by=args.by)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("approve", data, workspace=str(ws)), ws)
+
+        if cmd == "post":
+            data = post_payroll(ws, module=args.module, period=args.period, target=args.target)
+            _log_cli_event(ws, args, ok=True)
+            return _annotate_workspace_scope(ok_envelope("post", data, workspace=str(ws)), ws)
+
+        if cmd == "config":
+            if args.action == "show":
+                data = config_show(ws, target=args.target)
+            else:
+                if not args.target:
+                    raise EngineError(
+                        "CONFIG_TARGET_REQUIRED",
+                        "`config set` requires `--target <feeds|assumptions|outputs|payroll-mappings>`.",
+                        "Re-run `config set` with `--target`, `--path`, `--value`, and `--by`.",
+                    )
+                if not args.path:
+                    raise EngineError(
+                        "CONFIG_PATH_REQUIRED",
+                        "`config set` requires `--path <dot.path>`.",
+                        "Specify the configuration dot path to update.",
+                    )
+                if args.value is None:
+                    raise EngineError(
+                        "CONFIG_VALUE_REQUIRED",
+                        "`config set` requires `--value '<JSON>'`.",
+                        "Provide a JSON value literal for `--value`.",
+                    )
+                data = config_set(
+                    ws,
+                    target=args.target,
+                    path=args.path,
+                    raw_value=args.value,
+                    by=args.by or "",
+                    reason=args.reason or "",
+                )
+            return _annotate_workspace_scope(ok_envelope("config", data, workspace=str(ws)), ws)
+
+        if cmd == "brief":
+            data = generate_session_brief(
+                ws,
+                spec_json=args.spec,
+                target_company=args.target_company,
+                target_workflow=args.target_workflow,
+                target_harness=args.target_harness,
+                include_log=bool(args.include_log),
+            )
+            return _annotate_workspace_scope(ok_envelope("brief", data, workspace=str(ws)), ws)
+
+        raise EngineError(
+            "UNKNOWN_COMMAND",
+            f"Unsupported CLI command {cmd!r}.",
+            "Use one of the supported CLI commands.",
         )
-        return ok_envelope("brief", data, workspace=str(ws))
-
-    raise EngineError(
-        "UNKNOWN_COMMAND",
-        f"Unsupported CLI command {cmd!r}.",
-        "Use one of the supported CLI commands.",
-    )
+    except EngineError as err:
+        _log_cli_event(ws, args, ok=False, error_code=err.error_code)
+        raise
 
 
 def main(argv: Sequence[str] | None = None) -> int:

@@ -91,11 +91,12 @@ def test_change_decline_preserves_sources_configs_drafts_and_baseline_forecast(t
     # Snapshot all business data, YAML configs, history, incoming, and prior draft runs
     def _business_snapshot() -> dict[str, str]:
         snap = _snapshot_tree(ws)
-        # Exclude only workspace.db (status transition), config-audit.jsonl (decision log), and Setup.html (audit view)
+        # Exclude only workspace.db (status transition), config-audit.jsonl / session-events.jsonl (audit/event logs),
+        # and Setup.html (audit view)
         return {
             k: v
             for k, v in snap.items()
-            if k not in {"workspace.db", "config/config-audit.jsonl", "Setup.html"}
+            if k not in {"workspace.db", "config/config-audit.jsonl", "session-events.jsonl", "Setup.html"}
         }
 
     before_decline = _business_snapshot()

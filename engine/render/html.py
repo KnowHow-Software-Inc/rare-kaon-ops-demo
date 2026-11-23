@@ -777,9 +777,27 @@ def _render_model_card(model: ReportModel, workspace_dir: Path) -> str:
             links.append(
                 f'<a class="artifact-link" href="{_esc(href)}">{_esc(label)} <span class="mono">({_esc(fname)})</span></a>'
             )
+        # Preserve clickable links to prior draft PDFs/workbooks when Draft 2+ is active
+        prior_links = []
+        if meta.draft_number > 1:
+            period_runs_dir = workspace_dir / "runs" / meta.module / meta.period
+            if period_runs_dir.is_dir():
+                for draft_dir in sorted(period_runs_dir.glob("draft-*")):
+                    if draft_dir.name == f"draft-{meta.draft_number:03d}":
+                        continue
+                    for art_file in sorted(draft_dir.iterdir()):
+                        if art_file.suffix.lower() in {".pdf", ".xlsx"}:
+                            p_href = _to_relative_href(str(art_file), workspace_dir)
+                            prior_links.append(
+                                f'<a class="artifact-link" style="background:var(--surface-alt);color:var(--muted);border-color:var(--border);" '
+                                f'href="{_esc(p_href)}">{_esc(draft_dir.name)} &middot; <span class="mono">{_esc(art_file.name)}</span></a>'
+                            )
         if links:
             parts.append('<h3 class="section-heading">Generated Artifacts</h3>')
             parts.append(f'<div class="artifact-list">{"".join(links)}</div>')
+        if prior_links:
+            parts.append('<div class="card-meta" style="margin-top:8px;"><strong>Prior Preserved Drafts (Intact):</strong></div>')
+            parts.append(f'<div class="artifact-list">{"".join(prior_links)}</div>')
 
     # Control Checks — strictly separated Blocking vs. Open Review
     parts.append('<h3 class="section-heading">Control Checks &amp; Approval Gate</h3>')
